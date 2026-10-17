@@ -282,6 +282,13 @@ table.xls td.full{background:#fff8ea;}
       </div>
 
       <div class="card">
+        <details id="card-sobrante-full">
+          <summary class="card-summary"><span class="chev">▸</span> Sobrante Full / Shop (por turno)</summary>
+          <div id="sobrante-full"></div>
+        </details>
+      </div>
+
+      <div class="card">
         <h2>Adelantos</h2>
         <div class="tablewrap"><table class="xls"><thead><tr><th>Concepto</th><th>Monto</th><th>Lugar</th><th>Colaborador</th><th></th></tr></thead><tbody id="tbody-adelantos"></tbody></table></div>
         <div class="small" style="margin-top:6px;">El adelanto se resta de la recaudación de Playa o Full según el lugar elegido, y del sobrante/faltante del colaborador elegido.</div>
@@ -591,6 +598,7 @@ const DEFAULT_STATE = () => ({
     faltantePlaya: PLAYA_TURNO_LABELS.slice(0,4).map(t=>({turno:t,asignados:[]})),
     sobrantePlaya: PLAYA_TURNO_LABELS.slice(0,4).map(t=>({turno:t,asignados:[]})),
     faltanteFull: FULL_TURNO_LABELS.slice(0,3).map(t=>({turno:t,asignados:[]})),
+    sobranteFull: FULL_TURNO_LABELS.slice(0,3).map(t=>({turno:t,asignados:[]})),
     adelantos: [],
     hoja: {},
     canjes: {},
@@ -646,6 +654,7 @@ function load(){
     if(merged.asiento.tarjBoxesTurno1===undefined) merged.asiento.tarjBoxesTurno1 = 0;
     if(merged.asiento.tarjBoxesTurno2===undefined) merged.asiento.tarjBoxesTurno2 = 0;
     if(merged.asiento.pedidosYaTarjetaFull===undefined) merged.asiento.pedidosYaTarjetaFull = 0;
+    if(!Array.isArray(merged.asiento.sobranteFull)) merged.asiento.sobranteFull = [];
     // migración: adelantos anteriores no tenían lugar (playa/full) ni colaborador asociado
     if(Array.isArray(merged.asiento.adelantos)){
       merged.asiento.adelantos.forEach(ad=>{
@@ -1045,6 +1054,12 @@ function calcular(){
   const faltantePlayaCalc = a.faltantePlaya.map((g,i)=> ({...g, ...repartoFaltante(g, playaTurnos[i], true)}));
   const sobrantePlayaCalc = a.sobrantePlaya.map((g,i)=> ({...g, ...repartoFaltante(g, playaTurnos[i], false)}));
   const faltanteFullCalc  = a.faltanteFull.map((g,i)=> ({...g, ...repartoFaltante(g, fullTurnos[i], true)}));
+  const sobranteFullCalc  = a.sobranteFull.map((g,i)=> ({...g, ...repartoFaltante(g, fullTurnos[i], false)}));
+
+  // totales para el cuadro de recaudación: faltante en negativo, sobrante en positivo
+  const sumVal = arr => arr.reduce((s,g)=> s+num(g.valor),0);
+  const faltantePlayaTotal = sumVal(faltantePlayaCalc), sobrantePlayaTotal = sumVal(sobrantePlayaCalc);
+  const faltanteFullTotal = sumVal(faltanteFullCalc), sobranteFullTotal = sumVal(sobranteFullCalc);
 
   const tarjetasPlayaPorTurno = playaTurnos.map(p=> sumIngresos(LUG_PLAYA,p,'tarjCredito')+sumIngresos(LUG_PLAYA,p,'tarjDebito'));
   const tarjetasFullPorTurno  = fullTurnos.map(p=> sumIngresos(LUG_FULL,p,'tarjCredito')+sumIngresos(LUG_FULL,p,'tarjDebito'));
@@ -1077,7 +1092,7 @@ function calcular(){
     if(!personaNeto[k]) personaNeto[k] = {nombre, monto:0};
     personaNeto[k].monto += monto;
   }
-  [faltantePlayaCalc, sobrantePlayaCalc, faltanteFullCalc].forEach(grupos=>{
+  [faltantePlayaCalc, sobrantePlayaCalc, faltanteFullCalc, sobranteFullCalc].forEach(grupos=>{
     grupos.forEach(g=>{
       (g.asignados||[]).forEach(p=>{
         const cuota = p.tipo==='cuarto' ? g.pCuarto : (p.tipo==='medio' ? g.pMedio : g.pCompleto);
@@ -1144,6 +1159,7 @@ function calcular(){
   });
   haberItems.push({concepto:'Lubricantes playa', litros:1, precio:null, monto: lubricantesPlaya});
   sobrantePlayaCalc.forEach(g=>{ if(g.valor!==0) haberItems.push({concepto:`Sobrante Playa — ${g.turno}`, monto: g.valor}); });
+  sobranteFullCalc.forEach(g=>{ if(g.valor!==0) haberItems.push({concepto:`Sobrante Full — ${g.turno}`, monto: g.valor}); });
   fullPorTurno.forEach(x=>{ if(x.monto) haberItems.push({concepto:`Full — ${x.turno}`, monto: x.monto}); });
   // canjes por puntos (precio fijo, cantidad manual) — siempre presentes y editables.
   CANJES_PUNTOS.forEach(cj=>{
@@ -1161,7 +1177,8 @@ function calcular(){
     rutaPorTurno, rutaTotal,
     ctaCtePlaya, mpPlaya, appYpfPlaya, dtoAppPlaya, ctaCteFull, mpFull, appYpfFull, dtoAppFull,
     pedidosYa, combustibles, importeCombustibleTotal, lubricantesPlaya,
-    faltantePlayaCalc, sobrantePlayaCalc, faltanteFullCalc,
+    faltantePlayaCalc, sobrantePlayaCalc, faltanteFullCalc, sobranteFullCalc,
+    faltantePlayaTotal, sobrantePlayaTotal, faltanteFullTotal, sobranteFullTotal,
     tarjetasPlayaPorTurno, tarjetasFullPorTurno, tarjetasPlayaTotal, tarjetasFullTotal,
     fullPorTurno, fullPorTurnoTotal,
     debeItems, haberItems, totalDebe, totalHaber, diferencia: totalHaber-totalDebe,
@@ -1231,18 +1248,22 @@ function dropZone(e, arrKey, i){
   const nombre = e.dataTransfer.getData('text/plain');
   asignarPersonal(arrKey, i, nombre);
 }
-const GRUPOS_CRUZADOS_PLAYA = ['faltantePlaya', 'sobrantePlaya'];
-function otrasAsignaciones(nombre, excludeArrKey, excludeIndex){
+const GRUPOS_CRUZADOS = {
+  playa: ['faltantePlaya', 'sobrantePlaya'],
+  full:  ['faltanteFull', 'sobranteFull'],
+};
+function conjuntoDe(arrKey){ return Object.keys(GRUPOS_CRUZADOS).find(k=> GRUPOS_CRUZADOS[k].includes(arrKey)) || null; }
+function otrasAsignaciones(nombre, conjunto, excludeArrKey, excludeIndex){
   const a = state.asiento;
-  const playaTurnos = Array.from({length: a.turnosPlaya}, (_,i)=> num(a.playaBase)+i);
+  const base = conjunto==='full' ? num(a.fullBase) : num(a.playaBase);
   const out = [];
-  const signoPorGrupo = {faltantePlaya:true, sobrantePlaya:false}; // true = solo cuenta si la diferencia es negativa
-  GRUPOS_CRUZADOS_PLAYA.forEach(key=>{
+  const esFaltante = key => /^faltante/.test(key); // el faltante solo cuenta si la diferencia es negativa, el sobrante si es positiva
+  GRUPOS_CRUZADOS[conjunto].forEach(key=>{
     state.asiento[key].forEach((grp, gi)=>{
       if(key===excludeArrKey && gi===excludeIndex) return;
       // un turno en $0 (o del signo contrario) no es visible en pantalla: no cuenta como "ya asignado"
-      const diff = diferenciaPlanilla(playaTurnos[gi]);
-      const visible = signoPorGrupo[key] ? diff<0 : diff>0;
+      const diff = diferenciaPlanilla(base+gi);
+      const visible = esFaltante(key) ? diff<0 : diff>0;
       if(!visible) return;
       const p = grp.asignados.find(p=>p.nombre===nombre);
       if(p) out.push(p);
@@ -1255,9 +1276,10 @@ function asignarPersonal(arrKey, i, nombre){
   const g = state.asiento[arrKey][i];
   if(g.asignados.some(p=>p.nombre===nombre)) return;
   let tipo = 'completo';
-  if(GRUPOS_CRUZADOS_PLAYA.includes(arrKey)){
-    // si la persona ya está en otro turno de faltante y/o sobrante playa, todas esas asignaciones pasan a medio turno
-    const otros = otrasAsignaciones(nombre, arrKey, i);
+  const conjunto = conjuntoDe(arrKey);
+  if(conjunto){
+    // si la persona ya está en otro turno de faltante y/o sobrante del mismo lugar, todas esas asignaciones pasan a medio turno
+    const otros = otrasAsignaciones(nombre, conjunto, arrKey, i);
     if(otros.length){
       tipo = 'medio';
       otros.forEach(p=> p.tipo = 'medio');
@@ -1269,9 +1291,10 @@ function asignarPersonal(arrKey, i, nombre){
 function quitarAsignado(arrKey, i, nombre){
   const g = state.asiento[arrKey][i];
   g.asignados = g.asignados.filter(p=>p.nombre!==nombre);
-  if(GRUPOS_CRUZADOS_PLAYA.includes(arrKey)){
+  const conjunto = conjuntoDe(arrKey);
+  if(conjunto){
     // si tras sacarlo la persona queda en una sola asignación (faltante o sobrante), vuelve a completo
-    const restantes = otrasAsignaciones(nombre, null, null);
+    const restantes = otrasAsignaciones(nombre, conjunto, null, null);
     if(restantes.length===1 && restantes[0].tipo==='medio') restantes[0].tipo = 'completo';
   }
   save(); renderAll();
@@ -1295,6 +1318,7 @@ function syncGroups(){
   resize(a.faltantePlaya, a.turnosPlaya, PLAYA_TURNO_LABELS);
   resize(a.sobrantePlaya, a.turnosPlaya, PLAYA_TURNO_LABELS);
   resize(a.faltanteFull, a.turnosFull, FULL_TURNO_LABELS);
+  resize(a.sobranteFull, a.turnosFull, FULL_TURNO_LABELS);
 }
 function addTurno(tipo){
   const a = state.asiento;
@@ -1343,6 +1367,7 @@ function renderResumenFaltantesSobrantes(calc){
   calc.faltantePlayaCalc.forEach((g,i)=>{ if(g.valor!==0) rows.push({tipo:'Faltante Playa', turno:g.turno, planilla:(a.playaBase??0)+i, colaboradores:g.asignados, monto:g.valor}); });
   calc.sobrantePlayaCalc.forEach((g,i)=>{ if(g.valor!==0) rows.push({tipo:'Sobrante Playa', turno:g.turno, planilla:(a.playaBase??0)+i, colaboradores:g.asignados, monto:g.valor}); });
   calc.faltanteFullCalc.forEach((g,i)=>{ if(g.valor!==0) rows.push({tipo:'Faltante Full', turno:g.turno, planilla:(a.fullBase??0)+i, colaboradores:g.asignados, monto:g.valor}); });
+  calc.sobranteFullCalc.forEach((g,i)=>{ if(g.valor!==0) rows.push({tipo:'Sobrante Full', turno:g.turno, planilla:(a.fullBase??0)+i, colaboradores:g.asignados, monto:g.valor}); });
   const ORDEN_TURNO = ['Mañana','Tarde','Noche','ST1','ST2','ST3'];
   rows.sort((x,y)=> ORDEN_TURNO.indexOf(x.turno) - ORDEN_TURNO.indexOf(y.turno));
 
@@ -1572,9 +1597,11 @@ function renderAll(){
   renderGrupos('faltante-playa', 'faltantePlaya', calc.faltantePlayaCalc);
   renderGrupos('sobrante-playa', 'sobrantePlaya', calc.sobrantePlayaCalc);
   renderGrupos('faltante-full', 'faltanteFull', calc.faltanteFullCalc);
+  renderGrupos('sobrante-full', 'sobranteFull', calc.sobranteFullCalc);
   setCardOpen('card-faltante-playa', calc.faltantePlayaCalc.some(g=>g.valor!==0));
   setCardOpen('card-sobrante-playa', calc.sobrantePlayaCalc.some(g=>g.valor!==0));
   setCardOpen('card-faltante-full', calc.faltanteFullCalc.some(g=>g.valor!==0));
+  setCardOpen('card-sobrante-full', calc.sobranteFullCalc.some(g=>g.valor!==0));
   renderResumenFaltantesSobrantes(calc);
   renderAdelantos();
   renderColaboradorNeto(calc);
