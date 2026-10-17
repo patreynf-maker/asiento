@@ -1077,7 +1077,8 @@ function calcular(){
     let baseMonto = 0;
     if(planilla!==null){
       const row = state.baseIngresos.find(r=> r.lug===LUG_FULL && r.planilla===planilla);
-      if(row) baseMonto = num(row.total) - num(row.diferencia);
+      // solo el sobrante (diferencia positiva) se resta del turno; el faltante Full no modifica la recaudación del turno
+      if(row) baseMonto = num(row.total) - Math.max(num(row.diferencia), 0);
     }
     const peya = sumPeyaPorTurnoFecha(label, a.fechaPeya);
     return {turno:label, monto: baseMonto+peya};
