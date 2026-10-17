@@ -1363,26 +1363,31 @@ function setCardOpen(id, isOpen){
 }
 function renderResumenFaltantesSobrantes(calc){
   const a = state.asiento;
-  const rows = [];
-  calc.faltantePlayaCalc.forEach((g,i)=>{ if(g.valor!==0) rows.push({tipo:'Faltante Playa', turno:g.turno, planilla:(a.playaBase??0)+i, colaboradores:g.asignados, monto:g.valor}); });
-  calc.sobrantePlayaCalc.forEach((g,i)=>{ if(g.valor!==0) rows.push({tipo:'Sobrante Playa', turno:g.turno, planilla:(a.playaBase??0)+i, colaboradores:g.asignados, monto:g.valor}); });
-  calc.faltanteFullCalc.forEach((g,i)=>{ if(g.valor!==0) rows.push({tipo:'Faltante Full', turno:g.turno, planilla:(a.fullBase??0)+i, colaboradores:g.asignados, monto:g.valor}); });
-  calc.sobranteFullCalc.forEach((g,i)=>{ if(g.valor!==0) rows.push({tipo:'Sobrante Full', turno:g.turno, planilla:(a.fullBase??0)+i, colaboradores:g.asignados, monto:g.valor}); });
   const ORDEN_TURNO = ['Mañana','Tarde','Noche','ST1','ST2','ST3'];
-  rows.sort((x,y)=> ORDEN_TURNO.indexOf(x.turno) - ORDEN_TURNO.indexOf(y.turno));
+  const mk = (lista, tipo, base, rows)=> lista.forEach((g,i)=>{ if(g.valor!==0) rows.push({tipo, turno:g.turno, planilla:(base??0)+i, colaboradores:g.asignados, monto:g.valor}); });
+  const playa = [], full = [];
+  mk(calc.faltantePlayaCalc, 'Faltante', a.playaBase, playa);
+  mk(calc.sobrantePlayaCalc, 'Sobrante', a.playaBase, playa);
+  mk(calc.faltanteFullCalc, 'Faltante', a.fullBase, full);
+  mk(calc.sobranteFullCalc, 'Sobrante', a.fullBase, full);
+  [playa, full].forEach(rows=> rows.sort((x,y)=> ORDEN_TURNO.indexOf(x.turno) - ORDEN_TURNO.indexOf(y.turno)));
 
-  const el = document.getElementById('resumen-faltantes-sobrantes');
-  if(!rows.length){ el.innerHTML = '<div class="small">No hay faltantes ni sobrantes cargados por ahora.</div>'; return; }
   const TIPO_SUF = {medio:' (medio)', cuarto:' (cuarto)'};
-  let html = '<table class="xls"><thead><tr><th>Tipo</th><th>Turno</th><th>N° Planilla</th><th>Colaboradores</th><th>Monto</th></tr></thead><tbody>';
-  rows.forEach(r=>{
-    const colabText = (r.colaboradores && r.colaboradores.length)
-      ? r.colaboradores.map(p=> escapeHtml(p.nombre) + (TIPO_SUF[p.tipo]||'')).join(', ')
-      : '<span class="small">Sin asignar</span>';
-    html += `<tr><td class="label">${r.tipo}</td><td class="label">${r.turno}</td><td>${r.planilla}</td><td class="label">${colabText}</td><td>${moneyColored(r.monto)}</td></tr>`;
-  });
-  html += '</tbody></table>';
-  el.innerHTML = html;
+  function tabla(titulo, clase, rows){
+    let html = `<h3 class="${clase}" style="font-size:13px;margin:10px 0 6px;">${titulo}</h3>`;
+    if(!rows.length) return html + '<div class="small">No hay faltantes ni sobrantes cargados por ahora.</div>';
+    html += '<table class="xls"><thead><tr><th>Tipo</th><th>Turno</th><th>N° Planilla</th><th>Colaboradores</th><th>Monto</th></tr></thead><tbody>';
+    rows.forEach(r=>{
+      const colabText = (r.colaboradores && r.colaboradores.length)
+        ? r.colaboradores.map(p=> escapeHtml(p.nombre) + (TIPO_SUF[p.tipo]||'')).join(', ')
+        : '<span class="small">Sin asignar</span>';
+      html += `<tr><td class="label">${r.tipo}</td><td class="label">${r.turno}</td><td>${r.planilla}</td><td class="label">${colabText}</td><td>${moneyColored(r.monto)}</td></tr>`;
+    });
+    const total = rows.reduce((s,r)=> s+num(r.monto),0);
+    html += `<tr class="total"><td colspan="4">TOTAL ${titulo.toUpperCase()}</td><td>${moneyColored(total)}</td></tr></tbody></table>`;
+    return html;
+  }
+  document.getElementById('resumen-faltantes-sobrantes').innerHTML = tabla('Playa','playa',playa) + tabla('Full / Shop','full',full);
 }
 function setCombustible(key, field, val){
   const c = state.asiento.combustibles[key];
