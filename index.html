@@ -1159,7 +1159,7 @@ function calcular(){
   });
   haberItems.push({concepto:'Lubricantes playa', litros:1, precio:null, monto: lubricantesPlaya});
   sobrantePlayaCalc.forEach(g=>{ if(g.valor!==0) haberItems.push({concepto:`Sobrante Playa — ${g.turno}`, monto: g.valor}); });
-  sobranteFullCalc.forEach(g=>{ if(g.valor!==0) haberItems.push({concepto:`Sobrante Full — ${g.turno}`, monto: g.valor}); });
+  // Sobrante/faltante Full: ya se aplican en cada línea "Full — turno" (total − diferencia): el sobrante resta y el faltante suma en su turno.
   fullPorTurno.forEach(x=>{ if(x.monto) haberItems.push({concepto:`Full — ${x.turno}`, monto: x.monto}); });
   // canjes por puntos (precio fijo, cantidad manual) — siempre presentes y editables.
   CANJES_PUNTOS.forEach(cj=>{
@@ -1266,37 +1266,43 @@ function otrasAsignaciones(nombre, conjunto, excludeArrKey, excludeIndex){
       const visible = esFaltante(key) ? diff<0 : diff>0;
       if(!visible) return;
       const p = grp.asignados.find(p=>p.nombre===nombre);
-      if(p) out.push(p);
+      if(p) out.push({p, grp});
     });
   });
   return out;
+}
+// Ajusta completo/medio de una persona según sus asignaciones del mismo lugar (playa o full):
+//  - en un solo turno: completo.
+//  - en dos o más turnos y SOLA en todos ellos: completo en todos (si no, se dividiría consigo misma).
+//  - en dos o más turnos compartiendo alguno con otras personas: medio (se respeta si ya se puso cuarto a mano).
+function reevaluarTipoPersona(nombre, conjunto, esPrincipal){
+  const entradas = otrasAsignaciones(nombre, conjunto, null, null);
+  if(entradas.length===0) return;
+  const sola = entradas.every(e=> e.grp.asignados.length===1);
+  entradas.forEach(({p})=>{
+    if(entradas.length===1){ if(esPrincipal && p.tipo==='medio') p.tipo = 'completo'; } // no se pisa lo que otra persona tenga puesto a mano
+    else if(sola){ if(p.tipo==='medio') p.tipo = 'completo'; }
+    else { if(p.tipo==='completo') p.tipo = 'medio'; }
+  });
+}
+function reevaluarTiposConjunto(conjunto, nombres, principal){
+  new Set([principal, ...nombres]).forEach(n=> reevaluarTipoPersona(n, conjunto, n===principal));
 }
 function asignarPersonal(arrKey, i, nombre){
   if(!nombre) return;
   const g = state.asiento[arrKey][i];
   if(g.asignados.some(p=>p.nombre===nombre)) return;
-  let tipo = 'completo';
+  g.asignados.push({nombre, tipo:'completo'});
   const conjunto = conjuntoDe(arrKey);
-  if(conjunto){
-    // si la persona ya está en otro turno de faltante y/o sobrante del mismo lugar, todas esas asignaciones pasan a medio turno
-    const otros = otrasAsignaciones(nombre, conjunto, arrKey, i);
-    if(otros.length){
-      tipo = 'medio';
-      otros.forEach(p=> p.tipo = 'medio');
-    }
-  }
-  g.asignados.push({nombre, tipo});
+  // se re-evalúa a la persona agregada y a quienes ya estaban en ese turno (ahora ya no están solos)
+  if(conjunto) reevaluarTiposConjunto(conjunto, g.asignados.map(p=>p.nombre), nombre);
   save(); renderAll();
 }
 function quitarAsignado(arrKey, i, nombre){
   const g = state.asiento[arrKey][i];
   g.asignados = g.asignados.filter(p=>p.nombre!==nombre);
   const conjunto = conjuntoDe(arrKey);
-  if(conjunto){
-    // si tras sacarlo la persona queda en una sola asignación (faltante o sobrante), vuelve a completo
-    const restantes = otrasAsignaciones(nombre, conjunto, null, null);
-    if(restantes.length===1 && restantes[0].tipo==='medio') restantes[0].tipo = 'completo';
-  }
+  if(conjunto) reevaluarTiposConjunto(conjunto, g.asignados.map(p=>p.nombre), nombre);
   save(); renderAll();
 }
 function toggleTipoAsignado(arrKey, i, nombre){
