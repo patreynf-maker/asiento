@@ -1,0 +1,1747 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>QQN554 S.A. — Asiento Diario</title>
+<style>
+:root{
+  --ypf-blue:#003a70; --ypf-blue-dark:#00284d; --ypf-yellow:#ffcc00;
+  --manual-bg:#fffbe6; --manual-border:#f0b429; --auto-bg:#f1f3f5; --auto-text:#495057;
+  --ok:#2b8a3e; --warn:#c92a2a; --border:#dfe3e8; --cell-border:#b9c2c9;
+}
+*{box-sizing:border-box;}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;margin:0;background:#f4f6f8;color:#1c2a33;}
+header{background:linear-gradient(135deg,var(--ypf-blue),var(--ypf-blue-dark));color:#fff;padding:16px 20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;}
+header h1{font-size:18px;margin:0;font-weight:700;}
+header .sub{font-size:12px;opacity:.8;}
+.topbtns{display:flex;gap:8px;flex-wrap:wrap;}
+.topbtns button{background:var(--ypf-yellow);color:#1c2a33;border:none;padding:8px 12px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;}
+.topbtns button.secondary{background:rgba(255,255,255,.15);color:#fff;}
+.topbtns button:hover{filter:brightness(1.05);}
+nav{display:flex;background:#fff;border-bottom:1px solid var(--border);position:sticky;top:0;z-index:10;overflow-x:auto;}
+nav button{flex:0 0 auto;padding:13px 18px;border:none;background:none;font-size:13px;font-weight:600;color:#667;cursor:pointer;border-bottom:3px solid transparent;white-space:nowrap;}
+nav button.active{color:var(--ypf-blue);border-bottom-color:var(--ypf-blue);}
+main{max-width:1240px;margin:0 auto;padding:18px 14px 60px;}
+.tab{display:none;}
+.tab.active{display:block;}
+.card{background:#fff;border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:16px;}
+.card h2{font-size:15px;margin:0 0 4px;color:var(--ypf-blue);}
+.card summary.card-summary{font-size:15px;margin:0;color:var(--ypf-blue);cursor:pointer;list-style:none;display:flex;align-items:center;gap:7px;font-weight:700;}
+.card summary.card-summary::-webkit-details-marker{display:none;}
+.card details[open]>summary.card-summary{margin-bottom:8px;}
+.card summary.card-summary .chev{display:inline-block;transition:transform .15s;font-size:12px;}
+.card details[open]>summary.card-summary .chev{transform:rotate(90deg);}
+.card .hint{font-size:12px;color:#78838c;margin-bottom:10px;}
+.grid{display:grid;gap:10px;}
+.grid.cols2{grid-template-columns:1fr 1fr;}
+.grid.cols3{grid-template-columns:repeat(3,1fr);}
+.grid.cols4{grid-template-columns:repeat(4,1fr);}
+.grid.cols5{grid-template-columns:repeat(5,1fr);}
+@media(max-width:800px){.grid.cols3,.grid.cols4,.grid.cols5{grid-template-columns:1fr 1fr;}}
+.asiento-columns{display:grid;grid-template-columns:1.15fr 0.85fr;gap:16px;align-items:start;}
+.asiento-columns .colhead{display:flex;align-items:center;gap:8px;margin:4px 0 10px;font-size:13px;font-weight:800;color:var(--ypf-blue);text-transform:uppercase;letter-spacing:.03em;}
+.asiento-columns .colhead .dot{width:10px;height:10px;border-radius:3px;}
+.colhead.manual .dot{background:var(--manual-bg);border:1px solid var(--manual-border);}
+.colhead.auto .dot{background:var(--auto-bg);border:1px solid var(--border);}
+@media(max-width:900px){.asiento-columns{grid-template-columns:1fr;}}
+label{display:block;font-size:11px;color:#667;margin-bottom:3px;font-weight:600;}
+input,textarea,select{width:100%;padding:7px 8px;border:1px solid var(--border);border-radius:6px;font-size:13px;font-family:inherit;background:#fff;}
+input[type=number]{-moz-appearance:textfield;}
+input[type=number]::-webkit-inner-spin-button,input[type=number]::-webkit-outer-spin-button{-webkit-appearance:none;margin:0;}
+input.manual{background:var(--manual-bg);border-color:var(--manual-border);}
+input[readonly]{background:var(--auto-bg);color:var(--auto-text);}
+textarea{min-height:80px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:11px;}
+.field{margin-bottom:8px;}
+.planillas-grid .field{display:flex;flex-direction:column;justify-content:flex-end;margin-bottom:0;}
+.planillas-grid .field label{flex:1;}
+.legend{display:flex;gap:16px;font-size:11px;color:#667;margin-bottom:0;flex-wrap:wrap;}
+.legend span{display:inline-flex;align-items:center;gap:5px;}
+.swatch{width:12px;height:12px;border-radius:3px;display:inline-block;}
+.swatch.manual{background:var(--manual-bg);border:1px solid var(--manual-border);}
+.swatch.auto{background:var(--auto-bg);border:1px solid var(--border);}
+.btnrow{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;}
+button.btn{background:var(--ypf-blue);color:#fff;border:none;padding:8px 14px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;}
+button.btn.ghost{background:#fff;color:var(--ypf-blue);border:1px solid var(--ypf-blue);}
+button.btn.danger{background:#fff;color:var(--warn);border:1px solid var(--warn);}
+button.btn:hover{filter:brightness(1.08);}
+button.btn:disabled{opacity:.5;cursor:not-allowed;}
+.tablewrap{overflow-x:auto;}
+.pill{display:inline-block;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700;}
+.pill.ok{background:#ebfbee;color:var(--ok);}
+.pill.warn{background:#fff5f5;color:var(--warn);}
+.pill.idle{background:#eef1f4;color:#556;}
+.diff-box{padding:12px;border-radius:8px;text-align:center;font-size:22px;font-weight:800;}
+.diff-box.ok{background:#ebfbee;color:var(--ok);}
+.diff-box.bad{background:#fff5f5;color:var(--warn);}
+footer{text-align:center;font-size:11px;color:#9aa4ab;padding:20px;}
+.small{font-size:11px;color:#78838c;}
+
+/* ---- carga de archivos (arriba) ---- */
+.upload-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;}
+@media(max-width:900px){.upload-grid{grid-template-columns:1fr 1fr;}}
+.upload-box{border:1px solid var(--border);border-radius:8px;padding:10px;background:#fafbfc;display:flex;flex-direction:column;gap:8px;min-height:130px;}
+.upload-box h3{font-size:12px;margin:0;color:var(--ypf-blue);display:flex;flex-direction:column;gap:4px;align-items:flex-start;flex:1;}
+.upload-box .filebtn{display:block;width:100%;text-align:center;background:var(--ypf-blue);color:#fff;border:none;padding:8px 6px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;}
+.upload-box .filebtn:hover{filter:brightness(1.1);}
+.upload-box input[type=file]{display:none;}
+.upload-box .clearlink{display:block;width:100%;text-align:center;font-size:13px;font-weight:700;color:#c92a2a;background:#fff;border:1px solid #e3b4b4;border-radius:6px;padding:9px 6px;cursor:pointer;}
+.upload-box .clearlink:hover{background:#c92a2a;color:#fff;}
+
+/* ---- estilo tipo planilla excel ---- */
+table.xls{border-collapse:collapse;width:100%;font-size:12px;}
+table.xls th, table.xls td{border:1px solid var(--cell-border);padding:5px 7px;text-align:right;}
+table.xls th{background:#e8ecf0;color:#33424f;font-weight:700;text-align:center;font-size:11px;text-transform:uppercase;letter-spacing:.02em;}
+table.xls td.label{text-align:left;font-weight:600;background:#f6f8fa;}
+table.xls td.section{background:var(--ypf-blue);color:#fff;font-weight:700;text-align:left;}
+table.xls input{border:none;background:transparent;width:100%;text-align:right;padding:2px;font-size:12px;}
+table.xls input.manual{background:var(--manual-bg);}
+table.xls tr.total td{font-weight:800;background:#eef1f4;border-top:2px solid #556;}
+table.xls td.playa{background:#eef6ff;}
+table.xls td.full{background:#fff8ea;}
+
+/* ---- personal / drag&drop ---- */
+.personal-pool{display:flex;flex-wrap:wrap;gap:6px;padding:10px;border:1px dashed var(--border);border-radius:8px;background:#fafbfc;min-height:20px;}
+.chip-name{padding:4px 10px;background:#e7f0fa;border:1px solid #bcd3ea;border-radius:20px;font-size:12px;cursor:grab;user-select:none;color:var(--ypf-blue);font-weight:600;}
+.chip-name:active{cursor:grabbing;}
+.subgrid{border:1px solid var(--border);border-radius:8px;padding:10px;margin-bottom:10px;background:#fff;}
+.subgrid-head{font-size:12px;margin:0 0 8px;color:var(--ypf-blue);display:flex;justify-content:space-between;font-weight:700;}
+.drop-zone{min-height:46px;border:2px dashed var(--border);border-radius:8px;padding:8px;display:flex;flex-wrap:wrap;gap:6px;align-items:flex-start;transition:.15s;}
+.drop-zone.dragover{border-color:var(--ypf-blue);background:#eef4fb;}
+.chip-assigned{padding:3px 6px 3px 10px;border-radius:20px;font-size:11px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:6px;border:1px solid transparent;}
+.chip-assigned.completo{background:#e7f0fa;color:var(--ypf-blue);border-color:#bcd3ea;}
+.chip-assigned.medio{background:#fff3bf;color:#8a6d00;border-color:#f0d97a;}
+.chip-assigned.cuarto{background:#ffe3e3;color:#a61e1e;border-color:#f3a9a9;}
+.chip-assigned .x{background:rgba(0,0,0,.12);border-radius:50%;width:15px;height:15px;display:inline-flex;align-items:center;justify-content:center;font-size:10px;line-height:1;}
+.turno-chips{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:8px 0;}
+.turno-chips .chip{border-radius:20px;padding:5px 8px;font-size:13px;font-weight:700;text-align:center;white-space:nowrap;}
+.turno-block{padding:12px;border-radius:10px;}
+.turno-block label{font-size:12px;}
+.turno-block-playa{background:#e8f1fb;border:1px solid #9dc3e6;}
+.turno-block-playa .turno-chips .chip{background:#9dc3e6;color:#0b3d63;}
+.turno-block-full{background:#fdf1e6;border:1px solid #f4b183;}
+.turno-block-full .turno-chips .chip{background:#f4b183;color:#7a3b0a;}
+</style>
+</head>
+<body>
+
+<div id="modal-nuevo-dia" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9999;align-items:center;justify-content:center;padding:16px;">
+  <div style="background:#fff;border-radius:12px;padding:22px;max-width:440px;width:100%;box-shadow:0 10px 40px rgba(0,0,0,.3);">
+    <h2 style="margin:0 0 10px;font-size:18px;">🔄 Nuevo día</h2>
+    <p style="margin:0 0 16px;font-size:14px;line-height:1.4;">Se borran los archivos cargados, los faltantes/sobrantes asignados, los adelantos y todos los campos manuales del día. Se conservan los precios, los N° de planilla base, los turnos activos y la lista de personal.</p>
+    <div id="modal-nuevo-dia-error" style="color:#c92a2a;font-size:13px;margin-bottom:10px;"></div>
+    <div style="display:flex;gap:10px;justify-content:flex-end;">
+      <button class="btn ghost" onclick="app.cancelarNuevoDia()">Cancelar</button>
+      <button class="btn danger" style="font-weight:700;" onclick="app.confirmarNuevoDia()">Sí, borrar el día</button>
+    </div>
+  </div>
+</div>
+<header>
+  <div>
+    <h1>QQN554 S.A. — Asiento Diario</h1>
+    <div class="sub">App de cierre de caja / asiento contable — YPF Quequén 554</div>
+  </div>
+  <div class="topbtns">
+    <button class="secondary" onclick="app.exportState()">💾 Exportar copia (.json)</button>
+    <button class="secondary" onclick="document.getElementById('importStateFile').click()">📂 Importar copia</button>
+    <input type="file" id="importStateFile" accept=".json" style="display:none" onchange="app.importState(this.files[0])">
+    <button id="btn-nuevo-dia" onclick="app.nuevoDia()">🔄 Nuevo día</button>
+  </div>
+</header>
+
+<nav>
+  <button data-tab="asiento" class="active">Asiento (planilla)</button>
+  <button data-tab="resumen">Resumen / Copiar al asiento</button>
+</nav>
+
+<main>
+
+<!-- ===================== TAB ASIENTO ===================== -->
+<div class="tab active" id="tab-asiento">
+
+  <div class="card">
+    <h2>Carga de archivos</h2>
+    <div class="upload-grid">
+      <div class="upload-box">
+        <h3>BASE INGRESOS <span class="pill idle" id="chip-ingresos">0 filas</span></h3>
+        <button class="filebtn" onclick="document.getElementById('file-ingresos').click()">📁 Subir Excel</button>
+        <input type="file" id="file-ingresos" accept=".xlsx,.xlsm,.xls" onchange="app.importFile('baseIngresos', this.files[0])">
+        <div class="clearlink" onclick="app.clearData('baseIngresos')">🗑 Vaciar</div>
+      </div>
+      <div class="upload-box">
+        <h3>OTROS DESPACHOS <span class="pill idle" id="chip-otros">0 filas</span></h3>
+        <button class="filebtn" onclick="document.getElementById('file-otros').click()">📁 Subir Excel</button>
+        <input type="file" id="file-otros" accept=".xlsx,.xlsm,.xls" onchange="app.importFile('baseOtrosDespachos', this.files[0])">
+        <div class="clearlink" onclick="app.clearData('baseOtrosDespachos')">🗑 Vaciar</div>
+      </div>
+      <div class="upload-box">
+        <h3>ASIENTO SISTEMA <span class="pill idle" id="chip-nocomb">0 filas</span></h3>
+        <button class="filebtn" onclick="document.getElementById('file-nocomb').click()">📁 Subir Excel</button>
+        <input type="file" id="file-nocomb" accept=".xlsx,.xlsm,.xls" onchange="app.importFile('noCombustibles', this.files[0])">
+        <div class="clearlink" onclick="app.clearData('noCombustibles')">🗑 Vaciar</div>
+      </div>
+      <div class="upload-box">
+        <h3>PEYA <span class="pill idle" id="chip-peya">0 filas</span></h3>
+        <button class="filebtn" onclick="document.getElementById('file-peya').click()">📁 Subir Excel</button>
+        <input type="file" id="file-peya" accept=".xlsx,.xlsm,.xls" onchange="app.importPeyaFile(this.files[0])">
+        <div class="clearlink" onclick="app.clearData('peya')">🗑 Vaciar</div>
+      </div>
+      <div class="upload-box">
+        <h3>PERSONAL <span class="pill idle" id="chip-personal">0 nombres</span></h3>
+        <button class="filebtn" onclick="document.getElementById('file-personal').click()">📁 Subir Excel</button>
+        <input type="file" id="file-personal" accept=".xlsx,.xlsm,.xls" onchange="app.importPersonalFile(this.files[0])">
+        <div class="clearlink" onclick="app.clearData('personal')">🗑 Vaciar</div>
+      </div>
+    </div>
+    <div id="upload-error" class="small" style="color:var(--warn);margin-top:8px;"></div>
+  </div>
+
+  <div class="card">
+    <div class="legend">
+      <span><span class="swatch manual"></span> Carga manual (izquierda)</span>
+      <span><span class="swatch auto"></span> Calculado automáticamente (derecha)</span>
+    </div>
+  </div>
+
+  <div class="asiento-columns">
+    <div class="col-manual">
+      <div class="colhead manual"><span class="dot"></span> Carga manual</div>
+
+      <div class="card">
+        <h2>Planillas y fecha</h2>
+        <div class="grid cols2 planillas-grid">
+          <div class="field"><label>N° de planilla base — PLAYA (turno mañana)</label><input class="manual" type="text" inputmode="numeric" id="a-playaBase" onchange="app.setNum('asiento.playaBase', this.value)"></div>
+          <div class="field"><label>N° de planilla base — FULL / SHOP (turno mañana)</label><input class="manual" type="text" inputmode="numeric" id="a-fullBase" onchange="app.setNum('asiento.fullBase', this.value)"></div>
+        </div>
+        <div class="small">Los turnos siguientes (Tarde, Noche, ST1…) se calculan solos sumando 1 a la planilla base.</div>
+        <div class="grid cols2" style="margin-top:12px;">
+          <div class="turno-block turno-block-playa">
+            <label>Turnos activos — Playa (<span id="count-playa">4</span>)</label>
+            <div class="turno-chips" id="turnos-playa-labels"></div>
+            <div class="btnrow">
+              <button class="btn ghost" onclick="app.addTurno('playa')">+ Agregar turno</button>
+              <button class="btn ghost" onclick="app.removeTurno('playa')">− Quitar último</button>
+            </div>
+          </div>
+          <div class="turno-block turno-block-full">
+            <label>Turnos activos — Full (<span id="count-full">3</span>)</label>
+            <div class="turno-chips" id="turnos-full-labels"></div>
+            <div class="btnrow">
+              <button class="btn ghost" onclick="app.addTurno('full')">+ Agregar turno</button>
+              <button class="btn ghost" onclick="app.removeTurno('full')">− Quitar último</button>
+            </div>
+          </div>
+        </div>
+        <div class="field" style="margin-top:12px;"><label>Fecha PEYA a computar</label><input class="manual" type="date" id="a-fechaPeya" onchange="app.set('asiento.fechaPeya', this.value)"></div>
+      </div>
+
+      <div class="card">
+        <h2>Combustibles — litros y precios por corte</h2>
+        <div class="tablewrap" id="combustibles-manual-tabla"></div>
+      </div>
+
+      <div class="card">
+        <h2>Ajustes varios</h2>
+        <div class="grid cols2">
+          <div class="field"><label>Ajuste YER</label><input class="manual" type="text" inputmode="decimal" id="a-ajusteYer" onchange="app.setNum('asiento.ajusteYer', this.value)"></div>
+          <div class="field"><label>Diferencia de precios</label><input class="manual" type="text" inputmode="decimal" id="a-difPrecios" onchange="app.setNum('asiento.difPrecios', this.value)"></div>
+          <div class="field"><label>Dtos. App agregados (a restar)</label><input class="manual" type="text" inputmode="decimal" id="a-dtosApp" onchange="app.setNum('asiento.dtosAppAgregados', this.value)"></div>
+          <div class="field"><label>Otros canjes — Playa</label><input class="manual" type="text" inputmode="decimal" id="a-otrosCanjesPlaya" onchange="app.setNum('asiento.otrosCanjesPlaya', this.value)"></div>
+          <div class="field"><label>Otros canjes — Full</label><input class="manual" type="text" inputmode="decimal" id="a-otrosCanjesFull" onchange="app.setNum('asiento.otrosCanjesFull', this.value)"></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Personal</h2>
+        <div class="personal-pool" id="personal-pool"></div>
+        <div style="display:flex;gap:6px;margin-top:8px;">
+          <input id="add-personal-input" placeholder="Agregar nombre suelto…" onkeydown="if(event.key==='Enter'){event.preventDefault();app.addPersonalManual();}">
+          <button class="btn ghost" style="white-space:nowrap;" onclick="app.addPersonalManual()">+ Agregar</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <details id="card-faltante-playa">
+          <summary class="card-summary"><span class="chev">▸</span> Faltante de playa (por turno)</summary>
+          <div id="faltante-playa"></div>
+        </details>
+      </div>
+
+      <div class="card">
+        <details id="card-sobrante-playa">
+          <summary class="card-summary"><span class="chev">▸</span> Sobrante de playa (por turno)</summary>
+          <div id="sobrante-playa"></div>
+        </details>
+      </div>
+
+      <div class="card">
+        <details id="card-faltante-full">
+          <summary class="card-summary"><span class="chev">▸</span> Faltante Full / Shop (por turno)</summary>
+          <div id="faltante-full"></div>
+        </details>
+      </div>
+
+      <div class="card">
+        <h2>Adelantos</h2>
+        <div class="tablewrap"><table class="xls"><thead><tr><th>Concepto</th><th>Monto</th><th>Lugar</th><th>Colaborador</th><th></th></tr></thead><tbody id="tbody-adelantos"></tbody></table></div>
+        <div class="small" style="margin-top:6px;">El adelanto se resta de la recaudación de Playa o Full según el lugar elegido, y del sobrante/faltante del colaborador elegido.</div>
+        <div class="btnrow"><button class="btn ghost" onclick="app.addAdelanto()">+ Agregar adelanto</button></div>
+      </div>
+    </div>
+
+    <div class="col-auto">
+      <div class="colhead auto"><span class="dot"></span> Calculado automáticamente</div>
+
+      <div class="card">
+        <h2>Combustibles — importe calculado</h2>
+        <div class="tablewrap" id="combustibles-auto-tabla"></div>
+      </div>
+
+      <div class="card">
+        <h2>Recaudación — Playa vs. Full</h2>
+        <div class="tablewrap" id="tabla-recaudacion"></div>
+      </div>
+
+      <div class="card">
+        <h2>Tarjetas por turno</h2>
+        <div class="tablewrap" id="tabla-tarjetas"></div>
+      </div>
+
+      <div class="card">
+        <h2>Full por turno</h2>
+        <div class="tablewrap" id="tabla-full-turno"></div>
+      </div>
+
+      <div class="card">
+        <h2>Totales del asiento</h2>
+        <div class="grid cols2">
+          <div><div class="small">DEBE (total)</div><div id="tot-debe" style="font-size:20px;font-weight:800;padding:8px 0;">$0</div></div>
+          <div><div class="small">HABER (total)</div><div id="tot-haber" style="font-size:20px;font-weight:800;padding:8px 0;">$0</div></div>
+        </div>
+        <div class="small">Diferencia (HABER − DEBE)</div>
+        <div class="diff-box ok" id="tot-diferencia">$0</div>
+      </div>
+
+      <div class="card">
+        <h2>Resumen de faltantes y sobrantes</h2>
+        <div class="tablewrap" id="resumen-faltantes-sobrantes"></div>
+      </div>
+
+      <div class="card">
+        <h2>Sobrantes / Faltantes por colaborador</h2>
+        <div class="tablewrap" id="resumen-colaboradores"></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ===================== TAB RESUMEN ===================== -->
+<div class="tab" id="tab-resumen">
+  <div class="card">
+    <h2 style="font-size:18px;">QQN554 S.A.</h2>
+    <div class="btnrow">
+      <button class="btn" onclick="app.copiarResumen()">📋 Copiar (para pegar en Excel)</button>
+      <button class="btn ghost" onclick="app.descargarCSV()">⬇️ Descargar .csv</button>
+    </div>
+  </div>
+  <div class="card">
+    <div class="grid cols2">
+      <div>
+        <h2 style="margin-bottom:8px;">DEBE</h2>
+        <div class="tablewrap" id="resumen-debe"></div>
+      </div>
+      <div>
+        <h2 style="margin-bottom:8px;">HABER</h2>
+        <div class="tablewrap" id="resumen-haber"></div>
+      </div>
+    </div>
+    <div class="grid cols3" style="margin-top:16px;">
+      <div><div class="small">Total DEBE</div><div id="r-tot-debe" style="font-size:20px;font-weight:800;padding:8px 0;">$0</div></div>
+      <div><div class="small">Total HABER</div><div id="r-tot-haber" style="font-size:20px;font-weight:800;padding:8px 0;">$0</div></div>
+      <div><div class="small">Diferencia</div><div class="diff-box ok" id="r-diferencia">$0</div></div>
+    </div>
+  </div>
+  <div class="card">
+    <h2>Tarjetas por turno</h2>
+    <div class="tablewrap" id="resumen-tarjetas"></div>
+  </div>
+  <div class="card">
+    <h2>Tarjetas BOXES</h2>
+    <div class="tablewrap" id="resumen-tarjetas-boxes"></div>
+  </div>
+</div>
+
+</main>
+<footer>App generada a partir de TABLA_ASIENTO.xlsm — funciona 100% offline, los datos se guardan en este navegador.</footer>
+
+<script>
+/* =====================================================================
+   LECTOR DE XLSX (ZIP + DecompressionStream nativo + XML) — sin librerías externas
+   ===================================================================== */
+async function inflateRaw(uint8){
+  if(typeof DecompressionStream === 'undefined'){
+    throw new Error('Tu navegador no puede leer archivos Excel comprimidos (falta soporte de DecompressionStream). Actualizalo o probá con Chrome/Edge recientes.');
+  }
+  const ds = new DecompressionStream('deflate-raw');
+  const stream = new Blob([uint8]).stream().pipeThrough(ds);
+  const buf = await new Response(stream).arrayBuffer();
+  return new Uint8Array(buf);
+}
+function parseZip(buffer){
+  const view = new DataView(buffer);
+  const bytes = new Uint8Array(buffer);
+  let eocdOffset = -1;
+  const minStart = Math.max(0, bytes.length-22-65557);
+  for(let i=bytes.length-22; i>=minStart; i--){
+    if(view.getUint32(i,true)===0x06054b50){ eocdOffset=i; break; }
+  }
+  if(eocdOffset<0) throw new Error('No es un archivo Excel válido (.xlsx/.xlsm).');
+  const cdOffset = view.getUint32(eocdOffset+16,true);
+  const cdEntries = view.getUint16(eocdOffset+10,true);
+  const entries = {};
+  let ptr = cdOffset;
+  for(let i=0;i<cdEntries;i++){
+    if(view.getUint32(ptr,true)!==0x02014b50) break;
+    const method = view.getUint16(ptr+10,true);
+    const compSize = view.getUint32(ptr+20,true);
+    const nameLen = view.getUint16(ptr+28,true);
+    const extraLen = view.getUint16(ptr+30,true);
+    const commentLen = view.getUint16(ptr+32,true);
+    const localOffset = view.getUint32(ptr+42,true);
+    const name = new TextDecoder().decode(bytes.slice(ptr+46, ptr+46+nameLen));
+    entries[name] = {method, compSize, localOffset};
+    ptr += 46+nameLen+extraLen+commentLen;
+  }
+  return {entries, bytes, view};
+}
+async function readZipFile(zip, name){
+  const e = zip.entries[name];
+  if(!e) return null;
+  const {view, bytes} = zip;
+  const lfNameLen = view.getUint16(e.localOffset+26,true);
+  const lfExtraLen = view.getUint16(e.localOffset+28,true);
+  const dataStart = e.localOffset+30+lfNameLen+lfExtraLen;
+  const raw = bytes.slice(dataStart, dataStart+e.compSize);
+  if(e.method===0) return raw;
+  if(e.method===8) return await inflateRaw(raw);
+  throw new Error('Método de compresión ZIP no soportado.');
+}
+function colToIndex(letters){
+  let idx=0;
+  for(let i=0;i<letters.length;i++) idx = idx*26 + (letters.charCodeAt(i)-64);
+  return idx-1;
+}
+function excelSerialToDateStr(serial){
+  const ms = Math.round((serial-25569)*86400*1000);
+  const d = new Date(ms);
+  const pad = n=>String(n).padStart(2,'0');
+  return `${d.getUTCFullYear()}-${pad(d.getUTCMonth()+1)}-${pad(d.getUTCDate())} ${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())}`;
+}
+async function xlsxToRows(arrayBuffer, sheetIndex=0){
+  const zip = parseZip(arrayBuffer);
+  let sharedStrings = [];
+  const ssBuf = await readZipFile(zip, 'xl/sharedStrings.xml');
+  if(ssBuf){
+    const doc = new DOMParser().parseFromString(new TextDecoder().decode(ssBuf), 'application/xml');
+    sharedStrings = Array.from(doc.getElementsByTagName('si')).map(si=>{
+      const ts = si.getElementsByTagName('t');
+      let out=''; for(let i=0;i<ts.length;i++) out+=ts[i].textContent;
+      return out;
+    });
+  }
+  const wbBuf = await readZipFile(zip, 'xl/workbook.xml');
+  const wbDoc = new DOMParser().parseFromString(new TextDecoder().decode(wbBuf), 'application/xml');
+  const sheetEls = Array.from(wbDoc.getElementsByTagName('sheet'));
+  const sheetEl = sheetEls[sheetIndex] || sheetEls[0];
+  let rId = sheetEl.getAttribute('r:id');
+  if(!rId){
+    const attrs = sheetEl.attributes;
+    for(let i=0;i<attrs.length;i++) if(attrs[i].localName==='id'){ rId = attrs[i].value; break; }
+  }
+  const relsBuf = await readZipFile(zip, 'xl/_rels/workbook.xml.rels');
+  const relsDoc = new DOMParser().parseFromString(new TextDecoder().decode(relsBuf), 'application/xml');
+  let target = null;
+  Array.from(relsDoc.getElementsByTagName('Relationship')).forEach(r=>{
+    if(r.getAttribute('Id')===rId) target = r.getAttribute('Target');
+  });
+  if(!target) target = `worksheets/sheet${sheetIndex+1}.xml`;
+  target = target.replace(/^\.?\//,'');
+  const sheetPath = target.startsWith('xl/') ? target : ('xl/'+target);
+  let sheetBuf = await readZipFile(zip, sheetPath);
+  if(!sheetBuf) sheetBuf = await readZipFile(zip, `xl/worksheets/sheet${sheetIndex+1}.xml`);
+  const sheetDoc = new DOMParser().parseFromString(new TextDecoder().decode(sheetBuf), 'application/xml');
+  const rowEls = Array.from(sheetDoc.getElementsByTagName('row'));
+  const rows = rowEls.map(rowEl=>{
+    const cellEls = Array.from(rowEl.getElementsByTagName('c'));
+    const rowData = [];
+    cellEls.forEach(c=>{
+      const ref = c.getAttribute('r')||'';
+      const m = ref.match(/[A-Z]+/);
+      const colIdx = m ? colToIndex(m[0]) : rowData.length;
+      const type = c.getAttribute('t');
+      const vEls = c.getElementsByTagName('v');
+      const isEls = c.getElementsByTagName('is');
+      let val = '';
+      if(type==='s' && vEls.length) val = sharedStrings[parseInt(vEls[0].textContent,10)] ?? '';
+      else if(type==='inlineStr' && isEls.length){ const ts=isEls[0].getElementsByTagName('t'); for(let i=0;i<ts.length;i++) val+=ts[i].textContent; }
+      else if(vEls.length) val = vEls[0].textContent;
+      rowData[colIdx] = val;
+    });
+    for(let i=0;i<rowData.length;i++) if(rowData[i]===undefined) rowData[i]='';
+    return rowData;
+  });
+  return rows;
+}
+function rowsToTSV(rows){ return rows.map(r=> r.map(c=>String(c===undefined||c===null?'':c)).join('\t')).join('\n'); }
+
+/* =====================================================================
+   ESTADO
+   ===================================================================== */
+const PLAYA_TURNO_LABELS = ['Mañana','Tarde','Noche','ST1','ST2','ST3'];
+const FULL_TURNO_LABELS = ['Mañana','Tarde','Noche','ST1','ST2','ST3'];
+// Orden fijo de colaboradores para la tabla de sobrantes/faltantes del día.
+const PERSONAL_ORDEN = ['RUIZ','PARADA','LABARTHE','TARDON','ESCOBAR','RODRIGUEZ','HERNANDEZ','SMOULNEAR','ROMANO','HANSEN','CHIANELLI','FAIJOO','PRADO','ALVAREZ'];
+const COMBUSTIBLE_ORDEN = ['naftaSuper','infiniaNafta','diesel500','infiniaDiesel','gnc'];
+const MAX_TIERS = 10;
+function tiersOf(c){ return Math.min(MAX_TIERS, Math.max(2, num(c && c.nTiers) || 2)); }
+// litros cargados en los cortes 2..N (lo que se descuenta del corte 1)
+function litrosOtrosCortes(c){ let t=0; for(let i=2;i<=MAX_TIERS;i++) t += num(c['litros'+i]); return t; }
+const COMBUSTIBLE_COLOR = { naftaSuper:'#9dc3e6', infiniaNafta:'#ffe98a', diesel500:'#6aa84f', infiniaDiesel:'#c6e0b4', gnc:'#f4b183' };
+// Renglones "muertos" de la hoja original: variantes de precio que nunca tuvieron fórmula propia
+// (precio nuevo 3/4, esp/empresas, ruta contado) pero que existen como filas en el Excel real.
+const COMBUSTIBLE_EXTRA_LABELS = {
+  naftaSuper: ['super precio nuevo 3','super precio nuevo 4','super precio esp/empresas','super precio esp/empresas nuevo','super precio esp/empresas nuevo 2','super precio esp/empresas nuevo 3','super precio esp/empresas nuevo 4','super ruta contado','super ruta contado precio nuevo','super ruta contado precio nuevo 2','super ruta contado precio nuevo 3','super ruta contado precio nuevo 4'],
+  infiniaNafta: ['infinia precio nuevo 3','infinia precio nuevo 4','infinia precio esp/empresas','infinia precio esp/empresas nuevo','infinia precio esp/empresas nuevo 2','infinia precio esp/empresas nuevo 3','infinia precio esp/empresas nuevo 4','infinia ruta contado','infinia ruta contado precio nuevo','infinia ruta contado precio nuevo 2','infinia ruta contado precio nuevo 3','infinia ruta contado precio nuevo 4'],
+  diesel500: ['diesel 500 precio nuevo 3','diesel 500 precio nuevo 4','diesel 500 precio esp/empresas','diesel 500 precio esp/empresas nuevo','diesel 500 precio esp/empresas nuevo 2','diesel 500 precio esp/empresas nuevo 3','diesel 500 precio esp/empresas nuevo 4','diesel 500 ruta contado','diesel 500 ruta contado precio nuevo','diesel 500 ruta contado precio nuevo 2','diesel 500 ruta contado precio nuevo 3','diesel 500 ruta contado precio nuevo 4'],
+  infiniaDiesel: ['infinia diesel precio nuevo 3','infinia diesel esp/empresas nuevo','infinia diesel esp/empresas nuevo 2','infinia diesel esp/empresas nuevo 3','infinia diesel esp/empresas nuevo 4','infinia diesel ruta contado','infinia diesel ruta contado precio nuevo','infinia diesel ruta contado precio nuevo 2','infinia diesel ruta contado precio nuevo 3','infinia diesel ruta contado precio nuevo 4'],
+  gnc: [],
+};
+// Programa de canjes por puntos (yerbera, lona, reposera, mate, lunchera): cantidad manual, precio fijo.
+const CANJES_PUNTOS = [
+  {key:'yerbera1', label:'yerbera-4000 ptos', precio:0.01},
+  {key:'yerbera2', label:'yerbera-2000ptos+1000', precio:1000},
+  {key:'yerbera3', label:'yerbera-100 ptos+3000', precio:3000},
+  {key:'lona1', label:'lona-7000pts', precio:0.01},
+  {key:'lona2', label:'lona-5000ptos+4500', precio:4500},
+  {key:'lona3', label:'lona-100pts+6500', precio:6500},
+  {key:'reposera1', label:'reposera-8000pts', precio:0.01},
+  {key:'reposera2', label:'reposera-6000pts+5500', precio:5500},
+  {key:'reposera3', label:'reposera-100pts+7500', precio:7500},
+  {key:'mate1', label:'mate-3500pts', precio:3500},
+  {key:'mate2', label:'mate-1500pts+900', precio:2500},
+  {key:'mate3', label:'mate-100pts+1500', precio:0.01},
+  {key:'reposeraPosSc', label:'reposera x pos sc', precio:0.01},
+  {key:'lunchera', label:'lunchera x $1500', precio:1500},
+];
+// Renglones manuales del lado DEBE que en la hoja original no tienen fórmula propia (BOXES, rutas contado, etc.)
+const HOJA_MANUAL_DEBE = [
+  {key:'boxes4', label:'BOXES'},
+  {key:'ypfRutaLubricante', label:'YPF RUTA lubricante'},
+  {key:'rutaContadoSuper', label:'RUTA Contado Super'},
+  {key:'rutaContadoInfinia', label:'RUTA Contado Infinia'},
+  {key:'rutaContadoDiesel', label:'RUTA Contado Diesel'},
+  {key:'rutaContadoInfiDiesel', label:'RUTA Contado Infi. Diesel'},
+  {key:'rutaContadoLubri', label:'RUTA CONTADO lubri.'},
+  {key:'ctaCteEventualPlaya', label:'Cuentas corrientes eventuales (Playa)'},
+  {key:'ctaCteEventualFull', label:'Cuentas corrientes eventuales (Full)'},
+  {key:'boxesCtaCte', label:'Cuentas corrientes (BOXES)'},
+  {key:'boxesCtaCteEventual', label:'Cuentas corrientes eventuales (BOXES)'},
+  {key:'boxesMp', label:'Mercado Pago (BOXES)'},
+  {key:'boxesAppYpf', label:'App YPF (BOXES)'},
+  {key:'boxesDescApp', label:'Descuentos App (BOXES)'},
+  {key:'boxesOtrosCanjes', label:'Otros canjes (BOXES)'},
+  {key:'boxesPromo', label:'Promo en Boxes'},
+  {key:'faltanteBoxes', label:'Faltante BOXES'},
+  {key:'sobranteBoxesDebe', label:'Sobrante Boxes'},
+  {key:'pedidosYaEfectivo', label:'Pedidos YA efectivo'},
+];
+// Renglones manuales del lado HABER sin fuente de datos propia
+const HOJA_MANUAL_HABER = [
+  {key:'filtros', label:'Filtros'},
+  {key:'intereseTarjetas', label:'Interese tarjetas'},
+  {key:'sobranteBoxesHaber', label:'Sobrante Boxes'},
+  {key:'ingresosCheques', label:'Ingresos por cheques'},
+  {key:'ingresosEfectivos', label:'Ingresos efectivos'},
+];
+const DEFAULT_STATE = () => ({
+  baseIngresos: [],
+  baseOtrosDespachos: [],
+  noCombustibles: [],
+  peya: [],
+  personal: [],
+  asiento: {
+    playaBase: null,
+    fullBase: null,
+    turnosPlaya: 4,
+    turnosFull: 3,
+    fechaPeya: new Date(Date.now()-86400000).toISOString().slice(0,10),
+    combustibles: {
+      naftaSuper:   {label:'NAFTA SUPER',    nTiers:2, litros1:0, litros2:0, precio1:0, precio2:0, extra: COMBUSTIBLE_EXTRA_LABELS.naftaSuper.map(()=>({litros:0,precio:0}))},
+      infiniaNafta: {label:'NAFTA INFINIA',  nTiers:2, litros1:0, litros2:0, precio1:0, precio2:0, extra: COMBUSTIBLE_EXTRA_LABELS.infiniaNafta.map(()=>({litros:0,precio:0}))},
+      diesel500:    {label:'DIESEL 500',     nTiers:2, litros1:0, litros2:0, precio1:0, precio2:0, extra: COMBUSTIBLE_EXTRA_LABELS.diesel500.map(()=>({litros:0,precio:0}))},
+      infiniaDiesel:{label:'INFINIA DIESEL', nTiers:2, litros1:0, litros2:0, precio1:0, precio2:0, extra: COMBUSTIBLE_EXTRA_LABELS.infiniaDiesel.map(()=>({litros:0,precio:0}))},
+      gnc:          {label:'GNC',            nTiers:2, litros1:0, litros2:0, precio1:0, precio2:0, extra: COMBUSTIBLE_EXTRA_LABELS.gnc.map(()=>({litros:0,precio:0}))},
+    },
+    ajusteYer: 0,
+    difPrecios: 0,
+    dtosAppAgregados: 0,
+    otrosCanjesPlaya: 0,
+    otrosCanjesFull: 0,
+    faltantePlaya: PLAYA_TURNO_LABELS.slice(0,4).map(t=>({turno:t,asignados:[]})),
+    sobrantePlaya: PLAYA_TURNO_LABELS.slice(0,4).map(t=>({turno:t,asignados:[]})),
+    faltanteFull: FULL_TURNO_LABELS.slice(0,3).map(t=>({turno:t,asignados:[]})),
+    adelantos: [],
+    hoja: {},
+    canjes: {},
+    tarjBoxesTurno1: 0,
+    tarjBoxesTurno2: 0,
+    pedidosYaTarjetaFull: 0,
+  }
+});
+// v3: se cambió la clave de guardado para que esta versión arranque sin datos de pruebas anteriores.
+const STORAGE_KEY = 'qqn554_asiento_state_v3';
+let state = load();
+syncGroups(); // por si el estado guardado es de una versión anterior sin turnosPlaya/turnosFull
+function load(){
+  try{
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if(!raw) return DEFAULT_STATE();
+    const parsed = JSON.parse(raw);
+    const def = DEFAULT_STATE();
+    const merged = Object.assign(def, parsed, {asiento: Object.assign(def.asiento, parsed.asiento||{})});
+    if(!merged.personal) merged.personal = [];
+    // por si el estado guardado no trae algún combustible
+    const combDef = DEFAULT_STATE().asiento.combustibles;
+    if(!merged.asiento.combustibles) merged.asiento.combustibles = {};
+    for(const key in combDef){ if(!merged.asiento.combustibles[key]) merged.asiento.combustibles[key] = combDef[key]; }
+    // migración: versiones anteriores usaban litrosTotal/litrosC2/litrosC3 (con litros1 calculado por resta)
+    if(merged.asiento.combustibles){
+      for(const key in merged.asiento.combustibles){
+        const c = merged.asiento.combustibles[key];
+        if(c && c.litrosTotal!==undefined && c.litros1===undefined){
+          c.litros1 = num(c.litrosTotal) - num(c.litrosC2) - num(c.litrosC3);
+          c.litros2 = num(c.litrosC2);
+          c.litros3 = num(c.litrosC3);
+          delete c.litrosTotal; delete c.litrosC2; delete c.litrosC3;
+        }
+        // migración: cantidad de cortes de precio visibles (por defecto 2; si ya había datos en P3+, se conservan)
+        if(c && !c.nTiers){
+          let n = 2;
+          for(let t=3;t<=MAX_TIERS;t++){ if(num(c['litros'+t]) || num(c['precio'+t])) n = t; }
+          c.nTiers = n;
+        }
+        // migración: completar renglones "muertos" (precio nuevo 3/4, esp/empresas, ruta contado)
+        if(c && !Array.isArray(c.extra)){
+          c.extra = (COMBUSTIBLE_EXTRA_LABELS[key]||[]).map(()=>({litros:0,precio:0}));
+        } else if(c){
+          const need = (COMBUSTIBLE_EXTRA_LABELS[key]||[]).length;
+          while(c.extra.length < need) c.extra.push({litros:0,precio:0});
+        }
+      }
+    }
+    // migración: renglones manuales de la "hoja para copiar al asiento" (BOXES, canjes, etc.)
+    if(!merged.asiento.hoja) merged.asiento.hoja = {};
+    if(!merged.asiento.canjes) merged.asiento.canjes = {};
+    if(merged.asiento.tarjBoxesTurno1===undefined) merged.asiento.tarjBoxesTurno1 = 0;
+    if(merged.asiento.tarjBoxesTurno2===undefined) merged.asiento.tarjBoxesTurno2 = 0;
+    if(merged.asiento.pedidosYaTarjetaFull===undefined) merged.asiento.pedidosYaTarjetaFull = 0;
+    // migración: adelantos anteriores no tenían lugar (playa/full) ni colaborador asociado
+    if(Array.isArray(merged.asiento.adelantos)){
+      merged.asiento.adelantos.forEach(ad=>{
+        if(ad.lugar===undefined) ad.lugar = 'playa';
+        if(ad.colaborador===undefined) ad.colaborador = '';
+      });
+    }
+    return merged;
+  }catch(e){ return DEFAULT_STATE(); }
+}
+function save(){
+  try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
+  catch(e){ console.warn('No se pudo guardar en este navegador:', e.message); }
+}
+
+/* =====================================================================
+   UTILIDADES
+   ===================================================================== */
+function num(v){
+  if(v===undefined||v===null||v==='') return 0;
+  if(typeof v==='number') return v;
+  let s = String(v).trim().replace(/\s|\$/g,'');
+  if(s==='') return 0;
+  const hasComma = s.includes(','), hasDot = s.includes('.');
+  if(hasComma && hasDot){
+    if(s.lastIndexOf(',') > s.lastIndexOf('.')) s = s.replace(/\./g,'').replace(',','.');
+    else s = s.replace(/,/g,'');
+  } else if(hasComma){
+    const parts = s.split(',');
+    if(parts[parts.length-1].length<=2) s = s.replace(/,/g,(m,i)=> i===s.lastIndexOf(',')?'.':'');
+    else s = s.replace(/,/g,'');
+  }
+  const n = parseFloat(s);
+  return isNaN(n) ? 0 : n;
+}
+function round2(n){ n = Number(n)||0; return (Math.round((n + (n>=0?1:-1)*Number.EPSILON)*100)/100) || 0; }
+function money(n){
+  n = round2(n);
+  return '$' + n.toLocaleString('es-AR', {minimumFractionDigits:2, maximumFractionDigits:2});
+}
+function colorFor(n){ n = round2(n); return n<0 ? '#c92a2a' : (n>0 ? '#2b8a3e' : 'inherit'); }
+function moneyColored(n){
+  return `<span style="color:${colorFor(n)};font-weight:700;">${money(n)}</span>`;
+}
+function moneyInput(n, extraAttrs){
+  return `<input readonly style="color:${colorFor(n)};font-weight:700;" value="${money(n)}" ${extraAttrs||''}>`;
+}
+function manualAmountCell(value, onchangeExpr){
+  return `<input class="manual" type="text" inputmode="decimal" style="text-align:right;" value="${value||''}" onchange="${onchangeExpr}">`;
+}
+function norm(s){ return String(s||'').trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[.\s_]+/g,''); }
+function escapeHtml(s){ return String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
+function escapeJs(s){ return String(s??'').replace(/\\/g,'\\\\').replace(/'/g,"\\'"); }
+function mapRow(headers, row, map){
+  const idx = {};
+  headers.forEach((h,i)=>{ idx[norm(h)] = i; });
+  const out = {};
+  for(const key in map){
+    let found = -1;
+    for(const alias of map[key]){ if(idx[norm(alias)] !== undefined){ found = idx[norm(alias)]; break; } }
+    out[key] = found>=0 ? row[found] : '';
+  }
+  return out;
+}
+function showUploadError(msg){
+  const el = document.getElementById('upload-error');
+  el.textContent = msg || '';
+  if(msg) setTimeout(()=>{ if(el.textContent===msg) el.textContent=''; }, 8000);
+}
+
+/* =====================================================================
+   IMPORTACIÓN DE BASES
+   ===================================================================== */
+const FIELD_MAPS = {
+  baseIngresos: {
+    planilla:['Planilla'], lug:['Lug'], efectivo:['Efectivo'], ctacte:['Cta Cte','CtaCte'],
+    tarjCredito:['Tarj.Crédito','Tarj Credito','TarjCredito'], tarjDebito:['Tarj.Débito','Tarj Debito','TarjDebito'],
+    diferencia:['Diferencia'], mercadoPago:['Mercado_Pago','Mercado Pago'], appYpf:['APP_YPF','APP YPF'],
+    dtoCanje:['Dto/Canje APP_YPF','Dto Canje APP_YPF'], total:['Total'], personalizado:['Personalizado'],
+  },
+  baseOtrosDespachos: {
+    fecha:['Fecha'], planilla:['Planilla'], remito:['Remito'], producto:['Producto'],
+    unitario:['Unitario'], litros:['Litros'], importe:['Importe'], ope:['Ope'],
+  },
+  noCombustibles: { codigo:['CODIGO','Codigo'], producto:['PRODUCTO','Producto'], total:['total','Total'] }
+};
+const NUMERIC_FIELDS = {
+  baseIngresos: ['planilla','lug','efectivo','ctacte','tarjCredito','tarjDebito','diferencia','mercadoPago','appYpf','dtoCanje','total','personalizado'],
+  baseOtrosDespachos: ['planilla','unitario','litros','importe','ope'],
+  noCombustibles: ['total'],
+};
+
+/* Busca en las primeras filas cuál es la fila de encabezados real, comparando
+   contra los alias conocidos — los reportes reales traen varias filas de
+   título/fecha antes de la fila de columnas. */
+function detectSep(lines){
+  // mira varias líneas (no solo la primera, que puede tener una sola celda) para elegir separador
+  const sample = lines.slice(0,15).join('\n');
+  if(sample.includes('\t')) return '\t';
+  if(sample.includes(';')) return ';';
+  return ',';
+}
+function parseAllRows(text){
+  const lines = text.split(/\r?\n/).filter(l=>l.trim()!=='');
+  if(!lines.length) return [];
+  const sep = detectSep(lines);
+  return lines.map(l=> l.split(sep).map(c=>c.trim()));
+}
+function findHeaderRowIndex(rows, aliasMap, scanLimit=25){
+  let bestIdx=-1, bestScore=0;
+  const keys = Object.keys(aliasMap);
+  const minScore = Math.min(3, keys.length);
+  for(let i=0;i<Math.min(scanLimit, rows.length); i++){
+    const normRow = rows[i].map(norm);
+    let score = 0;
+    keys.forEach(k=>{ const aliases = aliasMap[k].map(norm); if(normRow.some(c=>aliases.includes(c))) score++; });
+    if(score>bestScore){ bestScore=score; bestIdx=i; }
+  }
+  return bestScore>=minScore ? bestIdx : 0;
+}
+function getCell(headerIdx, row, aliases){
+  for(const a of aliases){ const i=headerIdx[norm(a)]; if(i!==undefined) return row[i]; }
+  return '';
+}
+
+function importPasteText(key, text){
+  const allRows = parseAllRows(text);
+  if(!allRows.length) return;
+  const map = FIELD_MAPS[key];
+  const hIdx = findHeaderRowIndex(allRows, map);
+  const headers = allRows[hIdx];
+  const dataRows = allRows.slice(hIdx+1);
+  let data = dataRows.map(r=>mapRow(headers, r, map)).filter(r=>Object.values(r).some(v=>v!==''));
+  (NUMERIC_FIELDS[key]||[]).forEach(f=> data.forEach(d=> d[f]=num(d[f])));
+  // descarta filas de "total general" sin planilla real
+  if(key==='baseIngresos' || key==='baseOtrosDespachos') data = data.filter(d=> num(d.planilla) > 0);
+  state[key] = data;
+  save(); renderAll();
+}
+async function importFile(key, file){
+  if(!file) return;
+  showUploadError('');
+  try{
+    const ext = file.name.split('.').pop().toLowerCase();
+    if(ext==='xls'){ showUploadError('El formato .xls antiguo no se puede leer acá — guardalo como .xlsx desde Excel y volvé a subirlo.'); return; }
+    let text;
+    if(ext==='csv' || ext==='txt'){ text = await file.text(); }
+    else { const buf = await file.arrayBuffer(); const rows = await xlsxToRows(buf, 0); text = rowsToTSV(rows); }
+    if(key==='noCombustibles') importNoCombustiblesText(text);
+    else importPasteText(key, text);
+  }catch(e){
+    showUploadError('No se pudo leer el archivo: ' + e.message);
+  }
+}
+function clearData(key){
+  if(key==='peya') state.peya = [];
+  else if(key==='personal') state.personal = [];
+  else state[key] = [];
+  save(); renderAll();
+}
+
+/* --- NO COMBUSTIBLES: acepta el reporte "Resumen general de turnos" completo
+   (busca la sección "RESUMEN DE PRODUCTOS FACTURADOS" y excluye los códigos
+   de combustible) y de paso completa los litros de totalizador si los encuentra;
+   si no reconoce ese formato, cae al modo simple CODIGO/PRODUCTO/total. --- */
+const FUEL_CODES = ['00-00001','00-00002','00-00003','00-00004','00-00010'];
+const PRODUCT_KEY_MAP = { 'naftasuper':'naftaSuper','infinianafta':'infiniaNafta','diesel500':'diesel500','infiniadiesel':'infiniaDiesel','gnc':'gnc' };
+function importNoCombustiblesText(text){
+  const allRows = parseAllRows(text);
+  if(!allRows.length) return;
+
+  // sección de litros por surtidor (con filas "SUB-TOTAL")
+  let lastProduct = null; let litrosEncontrados = false;
+  const litrosPorProducto = {};
+  for(const row of allRows){
+    const producto = (row[1]||'').toString().trim();
+    if(producto) lastProduct = producto;
+    const col2 = (row[2]||'').toString().trim();
+    if(col2 === 'SUB-TOTAL' && lastProduct){
+      const key = PRODUCT_KEY_MAP[norm(lastProduct)];
+      if(key){ litrosPorProducto[key] = num(row[3]); litrosEncontrados = true; }
+    }
+  }
+  if(litrosEncontrados){
+    for(const key in PRODUCT_KEY_MAP){
+      const k = PRODUCT_KEY_MAP[key];
+      const totalDelDia = litrosPorProducto[k] || 0;
+      const c = state.asiento.combustibles[k];
+      // el total del archivo es el litraje completo del día: hay que volver a descontar lo que ya
+      // esté cargado en P2/P3 (puede haberse cargado antes o después de importar este archivo)
+      c.litros1 = round2(totalDelDia - litrosOtrosCortes(c));
+    }
+  }
+
+  // "DIFERENCIA DE PRECIOS" dentro de "DETALLE DE RENDICION DE PLANILLAS" (viene siempre en negativo
+  // en el archivo, pero debe sumar al DEBE, así que se guarda invertida)
+  for(const row of allRows){
+    const idx = row.findIndex(c=> norm(c)==='diferenciadeprecios');
+    if(idx>=0 && row[idx+1]!==undefined && row[idx+1]!==''){
+      state.asiento.difPrecios = -num(row[idx+1]);
+      break;
+    }
+  }
+
+  // sección "RESUMEN DE PRODUCTOS FACTURADOS" (CODIGO,PRODUCTO,CANTIDAD,IMPORTE,CANTIDAD,IMPORTE)
+  let headerIdx = -1;
+  for(let i=0;i<allRows.length;i++){
+    const r = allRows[i];
+    if(norm(r[0])==='codigo' && norm(r[1])==='producto' && norm(r[2])==='cantidad' && norm(r[3])==='importe'){ headerIdx = i; break; }
+  }
+  if(headerIdx>=0){
+    const data = [];
+    for(let i=headerIdx+1;i<allRows.length;i++){
+      const r = allRows[i];
+      if(/TOTAL COMBUSTIBLES/i.test(r.join(' '))) break;
+      const codigo = (r[0]||'').toString().trim();
+      const producto = (r[1]||'').toString().trim();
+      if(!producto) continue;
+      if(FUEL_CODES.includes(codigo)) continue;
+      const total = num(r[3]) + num(r[5]);
+      if(total <= 0) continue; // descarta descuentos/promos (importes negativos), no son productos de playa
+      data.push({codigo, producto, total});
+    }
+    state.noCombustibles = data;
+  } else {
+    // modo simple: CODIGO / PRODUCTO / total
+    importPasteText('noCombustibles', text);
+    return;
+  }
+  save(); renderAll();
+}
+
+/* --- PEYA --- */
+const PEYA_MAP = { planilla:['Nro de pedido'], retiro:['Retirado del local el'], totalParcial:['Total parcial'], descuentoTotal:['Descuento total'] };
+function clasificarTurno(fechaHoraStr){
+  if(!fechaHoraStr) return {turno:'Sin dato', fecha:null};
+  let str = String(fechaHoraStr);
+  if(/^\d+(\.\d+)?$/.test(str)) str = excelSerialToDateStr(parseFloat(str));
+  const m = str.match(/(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2})/);
+  if(!m) return {turno:'Sin dato', fecha:null};
+  const [_, y,mo,d,h] = m.map(Number);
+  let dt = new Date(y, mo-1, d);
+  let turno;
+  if(h>=6 && h<14) turno='Mañana';
+  else if(h>=14 && h<22) turno='Tarde';
+  else { turno='Noche'; if(h<6) dt.setDate(dt.getDate()-1); }
+  return {turno, fecha: dt.toISOString().slice(0,10)};
+}
+function importPeyaText(text){
+  const allRows = parseAllRows(text);
+  if(!allRows.length) return;
+  const hIdx = findHeaderRowIndex(allRows, PEYA_MAP);
+  const headers = allRows[hIdx];
+  const idx = {}; headers.forEach((h,i)=> idx[norm(h)] = i);
+  const dataRows = allRows.slice(hIdx+1);
+  const data = dataRows.filter(r=>r.some(c=>c!=='')).map(r=>{
+    const retiro = getCell(idx, r, PEYA_MAP.retiro);
+    const {turno, fecha} = clasificarTurno(retiro);
+    const totalParcial = num(getCell(idx, r, PEYA_MAP.totalParcial));
+    const descuentoTotal = num(getCell(idx, r, PEYA_MAP.descuentoTotal));
+    return { pedido: getCell(idx, r, PEYA_MAP.planilla), retiro, turno, fecha, totalParcial, descuentoTotal, total: totalParcial-descuentoTotal };
+  });
+  state.peya = data;
+  save(); renderAll();
+}
+async function importPeyaFile(file){
+  if(!file) return;
+  showUploadError('');
+  try{
+    const ext = file.name.split('.').pop().toLowerCase();
+    if(ext==='xls'){ showUploadError('El formato .xls antiguo no se puede leer acá — guardalo como .xlsx desde Excel y volvé a subirlo.'); return; }
+    let text;
+    if(ext==='csv' || ext==='txt'){ text = await file.text(); }
+    else { const buf = await file.arrayBuffer(); const rows = await xlsxToRows(buf, 0); text = rowsToTSV(rows); }
+    importPeyaText(text);
+  }catch(e){ showUploadError('No se pudo leer el archivo: ' + e.message); }
+}
+
+/* --- PERSONAL --- */
+function addPersonalManual(){
+  const input = document.getElementById('add-personal-input');
+  const v = input.value.trim();
+  if(!v) return;
+  if(!state.personal.includes(v)) state.personal.push(v);
+  input.value = '';
+  save(); renderAll();
+}
+async function importPersonalFile(file){
+  if(!file) return;
+  showUploadError('');
+  try{
+    const ext = file.name.split('.').pop().toLowerCase();
+    if(ext==='xls'){ showUploadError('El formato .xls antiguo no se puede leer acá — guardalo como .xlsx desde Excel y volvé a subirlo.'); return; }
+    let names = [];
+    if(ext==='csv' || ext==='txt'){
+      const text = await file.text();
+      names = text.split(/\r?\n/).map(l=>l.split(/[,\t;]/)[0].trim()).filter(Boolean);
+    } else {
+      const buf = await file.arrayBuffer();
+      const rows = await xlsxToRows(buf, 0);
+      names = rows.map(r=> (r[0]||'').toString().trim()).filter(Boolean);
+    }
+    // descarta un posible encabezado tipo "nombre"/"apellido"/"personal"
+    if(names.length && /^(nombre|apellido|personal|empleado|vendedor)/i.test(names[0])) names.shift();
+    names.forEach(n=>{ if(!state.personal.includes(n)) state.personal.push(n); });
+    save(); renderAll();
+  }catch(e){ showUploadError('No se pudo leer el archivo: ' + e.message); }
+}
+
+/* =====================================================================
+   HELPERS DE ESTADO
+   ===================================================================== */
+function getPath(path){ return path.split('.').reduce((o,k)=>o&&o[k], state); }
+function setPath(path, val){ const parts = path.split('.'); let o = state; for(let i=0;i<parts.length-1;i++) o = o[parts[i]]; o[parts[parts.length-1]] = val; }
+function set(path, val){ setPath(path, val); save(); renderAll(); }
+function setNum(path, val){ setPath(path, num(val)); save(); renderAll(); }
+window.app = window.app || {};
+Object.assign(app, { addCorte, removeCorte, importFile, importPeyaFile, clearData, set, setNum, addPersonalManual, importPersonalFile, setExtra, setHoja, setCanje });
+
+/* =====================================================================
+   MOTOR DE CÁLCULO
+   ===================================================================== */
+function sumIngresos(lug, planilla, campo){
+  return state.baseIngresos.filter(r=> r.lug===lug && r.planilla===planilla).reduce((s,r)=> s+num(r[campo]),0);
+}
+function sumOtrosDespachos(planilla){
+  return state.baseOtrosDespachos.filter(r=> r.planilla===planilla).reduce((s,r)=> s+num(r.importe),0);
+}
+function diferenciaPlanilla(planilla){
+  const r = state.baseIngresos.find(x=> x.planilla===planilla);
+  return r ? num(r.diferencia) : 0;
+}
+function sumPeyaPorTurnoFecha(turno, fecha){
+  if(!fecha) return 0;
+  return state.peya.filter(p=> p.turno===turno && p.fecha===fecha).reduce((s,p)=> s+num(p.total),0);
+}
+function repartoFaltante(grupo, planilla, signoNegativo){
+  const diff = diferenciaPlanilla(planilla);
+  let valor = 0;
+  if(signoNegativo){ if(diff<0) valor = diff; } else { if(diff>0) valor = diff; }
+  const asignados = grupo.asignados||[];
+  const totalPersonas = asignados.length || 1;
+  const cuartos = asignados.filter(p=>p.tipo==='cuarto').length;
+  const medios = asignados.filter(p=>p.tipo==='medio').length;
+  const completos = Math.max(totalPersonas-cuartos-medios,0);
+  const pCuarto = valor/(totalPersonas*4);
+  const pMedio  = valor/(totalPersonas*2);
+  const pCompleto = completos>0 ? (valor-(pCuarto*cuartos+pMedio*medios))/completos : 0;
+  return {valor, totalPersonas: asignados.length, cuartos, medios, completos, pCuarto, pMedio, pCompleto};
+}
+function calcular(){
+  const a = state.asiento;
+  const playaTurnos = Array.from({length: a.turnosPlaya}, (_,i)=> a.playaBase+i);
+  const fullTurnos = Array.from({length: a.turnosFull}, (_,i)=> a.fullBase+i);
+  const LUG_PLAYA=1, LUG_FULL=2;
+
+  // Adelantos: cada uno se resta de la recaudación del lugar donde cumple funciones el colaborador (Playa o Full).
+  const adelantosPlayaTotal = a.adelantos.filter(x=> x.lugar!=='full').reduce((s,x)=> s+num(x.monto),0);
+  const adelantosFullTotal  = a.adelantos.filter(x=> x.lugar==='full').reduce((s,x)=> s+num(x.monto),0);
+  const adelantosTotal = adelantosPlayaTotal + adelantosFullTotal;
+  const recaudacionFullBruta = fullTurnos.reduce((s,p)=> s+sumIngresos(LUG_FULL,p,'efectivo'),0);
+  const recaudacionFull = recaudacionFullBruta - adelantosFullTotal;
+  const recaudacionPlayaBruta = playaTurnos.reduce((s,p)=> s+sumIngresos(LUG_PLAYA,p,'efectivo'),0);
+  const recaudacionPlaya = recaudacionPlayaBruta - adelantosPlayaTotal;
+
+  // YPF ruta: una línea por turno activo de playa
+  // El Ajuste YER (con su signo) se suma a YPF ruta — Mañana (primer turno de playa).
+  const rutaPorTurno = playaTurnos.map((p,i)=> sumOtrosDespachos(p) + (i===0 ? num(a.ajusteYer) : 0));
+  const rutaTotal = rutaPorTurno.reduce((s,x)=>s+x,0);
+
+  // Cta Cte / Mercado Pago / App YPF / Dto App playa: se excluye el turno ST3 (regla original del sistema)
+  const playaSinST3 = playaTurnos.filter((p,i)=> PLAYA_TURNO_LABELS[i] !== 'ST3');
+  const ctaCtePlaya = playaSinST3.reduce((s,p)=> s+sumIngresos(LUG_PLAYA,p,'ctacte'),0);
+  const mpPlaya      = playaSinST3.reduce((s,p)=> s+sumIngresos(LUG_PLAYA,p,'mercadoPago'),0);
+  const appYpfPlaya  = playaSinST3.reduce((s,p)=> s+sumIngresos(LUG_PLAYA,p,'appYpf'),0);
+  const dtoAppPlaya  = playaSinST3.reduce((s,p)=> s+sumIngresos(LUG_PLAYA,p,'dtoCanje'),0) - a.dtosAppAgregados;
+
+  const ctaCteFull = fullTurnos.reduce((s,p)=> s+sumIngresos(LUG_FULL,p,'ctacte'),0);
+  const mpFull      = fullTurnos.reduce((s,p)=> s+sumIngresos(LUG_FULL,p,'mercadoPago'),0);
+  const appYpfFull  = fullTurnos.reduce((s,p)=> s+sumIngresos(LUG_FULL,p,'appYpf'),0);
+  const dtoAppFull  = fullTurnos.reduce((s,p)=> s+sumIngresos(LUG_FULL,p,'dtoCanje'),0);
+
+  const pedidosYa = state.peya.filter(p=> p.fecha===a.fechaPeya).reduce((s,p)=> s+num(p.total),0);
+
+  const combustibles = {};
+  let importeCombustibleTotal = 0;
+  for(const key in a.combustibles){
+    const c = a.combustibles[key];
+    const fs = [], nT = Math.max(tiersOf(c), 3);
+    let litrosSum = 0, totalC = 0;
+    for(let t=1;t<=MAX_TIERS;t++){ const f = num(c['litros'+t])*num(c['precio'+t]); fs[t] = f; litrosSum += num(c['litros'+t]); totalC += f; }
+    combustibles[key] = {label:c.label, litrosSum, f1:fs[1], f2:fs[2], f3:fs[3], fs, nT, total: totalC};
+    importeCombustibleTotal += totalC;
+  }
+  const lubricantesPlaya = state.noCombustibles.reduce((s,r)=> s+num(r.total),0);
+
+  const faltantePlayaCalc = a.faltantePlaya.map((g,i)=> ({...g, ...repartoFaltante(g, playaTurnos[i], true)}));
+  const sobrantePlayaCalc = a.sobrantePlaya.map((g,i)=> ({...g, ...repartoFaltante(g, playaTurnos[i], false)}));
+  const faltanteFullCalc  = a.faltanteFull.map((g,i)=> ({...g, ...repartoFaltante(g, fullTurnos[i], true)}));
+
+  const tarjetasPlayaPorTurno = playaTurnos.map(p=> sumIngresos(LUG_PLAYA,p,'tarjCredito')+sumIngresos(LUG_PLAYA,p,'tarjDebito'));
+  const tarjetasFullPorTurno  = fullTurnos.map(p=> sumIngresos(LUG_FULL,p,'tarjCredito')+sumIngresos(LUG_FULL,p,'tarjDebito'));
+  const tarjetasPlayaTotal = tarjetasPlayaPorTurno.reduce((s,x)=>s+x,0);
+  const tarjetasFullTotal  = tarjetasFullPorTurno.reduce((s,x)=>s+x,0);
+
+  // Full por turno: (Total - Diferencia) de BASE INGRESOS del turno + Pedidos YA del turno/fecha.
+  // (Dto/Canje APP_YPF NO se resta acá: ya se resta aparte como "Descuentos App — Full" en el DEBE,
+  // restarlo también acá lo contaba dos veces.)
+  // Siempre se muestran los 6 turnos posibles, pero solo se calculan los que están activos
+  // (según "Turnos activos — Full"); el resto queda en 0.
+  const fullPorTurno = FULL_TURNO_LABELS.map((label,i)=>{
+    if(i >= a.turnosFull) return {turno:label, monto:0};
+    const planilla = (a.fullBase!==null && a.fullBase!=='' && a.fullBase!==undefined) ? num(a.fullBase)+i : null;
+    let baseMonto = 0;
+    if(planilla!==null){
+      const row = state.baseIngresos.find(r=> r.lug===LUG_FULL && r.planilla===planilla);
+      if(row) baseMonto = num(row.total) - num(row.diferencia);
+    }
+    const peya = sumPeyaPorTurnoFecha(label, a.fechaPeya);
+    return {turno:label, monto: baseMonto+peya};
+  });
+  const fullPorTurnoTotal = fullPorTurno.reduce((s,x)=>s+x.monto,0);
+
+  // Sobrante/faltante neto del día por colaborador (orden fijo), descontando sus adelantos.
+  const personaNeto = {};
+  function addShare(nombre, monto){
+    const k = norm(nombre);
+    if(!k) return;
+    if(!personaNeto[k]) personaNeto[k] = {nombre, monto:0};
+    personaNeto[k].monto += monto;
+  }
+  [faltantePlayaCalc, sobrantePlayaCalc, faltanteFullCalc].forEach(grupos=>{
+    grupos.forEach(g=>{
+      (g.asignados||[]).forEach(p=>{
+        const cuota = p.tipo==='cuarto' ? g.pCuarto : (p.tipo==='medio' ? g.pMedio : g.pCompleto);
+        addShare(p.nombre, num(cuota));
+      });
+    });
+  });
+  a.adelantos.forEach(ad=>{ if(ad.colaborador) addShare(ad.colaborador, -num(ad.monto)); });
+  const colaboradorNeto = PERSONAL_ORDEN.map(nombre=>({nombre, monto: round2(personaNeto[norm(nombre)] ? personaNeto[norm(nombre)].monto : 0)}));
+  Object.keys(personaNeto).forEach(k=>{
+    if(!PERSONAL_ORDEN.some(n=> norm(n)===k)) colaboradorNeto.push({nombre: personaNeto[k].nombre, monto: round2(personaNeto[k].monto)});
+  });
+
+  // Tarjetas BOXES (turno1+turno2, manual) -> alimenta "Tarjetas de Crédito BOXES"
+  const tarjBoxesTotal = round2(num(a.tarjBoxesTurno1) + num(a.tarjBoxesTurno2));
+
+  const debeItems = [
+    {concepto:'Recaudación FULL', monto: recaudacionFull},
+    {concepto:'Recaudación a depositar (Playa)', monto: recaudacionPlaya},
+    {concepto:'Tarjetas de crédito/débito Playa', monto: tarjetasPlayaTotal},
+    {concepto:'Tarjetas de crédito/débito Full', monto: round2(tarjetasFullTotal + num(a.pedidosYaTarjetaFull))},
+  ];
+  rutaPorTurno.forEach((v,i)=> debeItems.push({concepto:`YPF ruta — ${PLAYA_TURNO_LABELS[i]}`, monto: v}));
+  debeItems.push(
+    {concepto:'Cuentas corrientes — Playa', monto: ctaCtePlaya},
+    {concepto:'Mercado Pago — Playa', monto: mpPlaya},
+    {concepto:'App YPF — Playa', monto: appYpfPlaya},
+    {concepto:'Descuentos App — Playa', monto: dtoAppPlaya},
+    {concepto:'Otros canjes — Playa', monto: a.otrosCanjesPlaya},
+    {concepto:'Cuentas corrientes — Full', monto: ctaCteFull},
+    {concepto:'Mercado Pago — Full', monto: mpFull},
+    {concepto:'App YPF — Full', monto: appYpfFull},
+    {concepto:'Descuentos App — Full', monto: dtoAppFull},
+    {concepto:'Otros canjes — Full', monto: a.otrosCanjesFull},
+    {concepto:'Diferencia de precios', monto: a.difPrecios},
+    {concepto:'Pedidos YA', monto: pedidosYa},
+  );
+  faltantePlayaCalc.forEach(g=>{ if(g.valor!==0) debeItems.push({concepto:`Faltante Playa — ${g.turno}`, monto: g.valor*-1}); });
+  faltanteFullCalc.forEach(g=>{ if(g.valor!==0) debeItems.push({concepto:`Faltante Full — ${g.turno}`, monto: g.valor*-1}); });
+  if(adelantosTotal) debeItems.push({concepto:'Adelantos', monto: adelantosTotal});
+  // Tarjetas de Crédito BOXES (manual, turno1+turno2)
+  debeItems.push({concepto:'Tarjetas de Crédito BOXES', monto: tarjBoxesTotal});
+  // renglones de la hoja original sin fuente de datos propia (BOXES, rutas contado, cuentas corrientes BOXES, etc.)
+  // siempre presentes y editables, tal cual la hoja original, tengan o no datos cargados.
+  HOJA_MANUAL_DEBE.forEach(r=>{ debeItems.push({concepto:r.label, monto: hojaVal(r.key), hojaKey:r.key}); });
+
+  const haberItems = [];
+  COMBUSTIBLE_ORDEN.forEach(key=>{
+    const cIn = a.combustibles[key];
+    const cc = combustibles[key];
+    // la hoja original siempre muestra al menos P1..P3; si se agregaron más cortes, se muestran todos
+    Array.from({length: cc.nT}, (_,i)=> i+1).forEach(tier=>{
+      const litros = num(cIn['litros'+tier]), precio = num(cIn['precio'+tier]);
+      const importe = cc.fs[tier];
+      haberItems.push({concepto:`${cIn.label} P${tier}`, litros, precio, monto:importe});
+    });
+    // renglones de precio "muertos" del producto (nunca tuvieron fórmula en el original),
+    // siempre presentes y editables tal cual la hoja original.
+    (COMBUSTIBLE_EXTRA_LABELS[key]||[]).forEach((label,idx)=>{
+      const ex = cIn.extra[idx];
+      const litros = num(ex.litros), precio = num(ex.precio), importe = round2(litros*precio);
+      haberItems.push({concepto:label, litros, precio, monto:importe, extraKey:key, extraIdx:idx});
+    });
+  });
+  haberItems.push({concepto:'Lubricantes playa', litros:1, precio:null, monto: lubricantesPlaya});
+  sobrantePlayaCalc.forEach(g=>{ if(g.valor!==0) haberItems.push({concepto:`Sobrante Playa — ${g.turno}`, monto: g.valor}); });
+  fullPorTurno.forEach(x=>{ if(x.monto) haberItems.push({concepto:`Full — ${x.turno}`, monto: x.monto}); });
+  // canjes por puntos (precio fijo, cantidad manual) — siempre presentes y editables.
+  CANJES_PUNTOS.forEach(cj=>{
+    const cant = canjeVal(cj.key);
+    haberItems.push({concepto:cj.label, litros:cant, precio:cj.precio, monto: round2(cant*cj.precio), canjeKey:cj.key});
+  });
+  // renglones de la hoja original sin fuente de datos propia (Filtros, intereses, Boxes, cheques, efectivo)
+  HOJA_MANUAL_HABER.forEach(r=>{ haberItems.push({concepto:r.label, monto: hojaVal(r.key), hojaKey:r.key}); });
+
+  const totalDebe = debeItems.reduce((s,x)=> s+num(x.monto),0);
+  const totalHaber = haberItems.reduce((s,x)=> s+num(x.monto),0);
+
+  return {
+    playaTurnos, fullTurnos, recaudacionFull, recaudacionFullBruta, recaudacionPlaya, recaudacionPlayaBruta, adelantosTotal, adelantosPlayaTotal, adelantosFullTotal, colaboradorNeto,
+    rutaPorTurno, rutaTotal,
+    ctaCtePlaya, mpPlaya, appYpfPlaya, dtoAppPlaya, ctaCteFull, mpFull, appYpfFull, dtoAppFull,
+    pedidosYa, combustibles, importeCombustibleTotal, lubricantesPlaya,
+    faltantePlayaCalc, sobrantePlayaCalc, faltanteFullCalc,
+    tarjetasPlayaPorTurno, tarjetasFullPorTurno, tarjetasPlayaTotal, tarjetasFullTotal,
+    fullPorTurno, fullPorTurnoTotal,
+    debeItems, haberItems, totalDebe, totalHaber, diferencia: totalHaber-totalDebe,
+  };
+}
+
+/* =====================================================================
+   RENDER
+   ===================================================================== */
+function renderGenericChip(id, n, label){ document.getElementById(id).textContent = n + ' ' + label; }
+
+function renderCombustiblesTabla(){
+  const a = state.asiento;
+  const calc = calcular();
+
+  // --- tabla manual (izquierda): estilo planilla original, agrupado por producto y corte de precio ---
+  let manualHtml = '<table class="xls combustible-table"><thead><tr><th>Combustible</th><th>M/L</th><th>Precio</th></tr></thead><tbody>';
+  COMBUSTIBLE_ORDEN.forEach(key=>{
+    const c = a.combustibles[key];
+    const color = COMBUSTIBLE_COLOR[key];
+    const nT = tiersOf(c);
+    Array.from({length:nT},(_,i)=>i+1).forEach(tier=>{
+      const litrosField = 'litros'+tier, precioField = 'precio'+tier;
+      const litrosVal = c[litrosField]||'', precioVal = c[precioField]||'';
+      const litrosInput = tier===1
+        ? `<input readonly value="${litrosVal}" title="Se completa solo: es el total menos lo cargado en los otros cortes, o lo que trae el archivo ASIENTO SISTEMA">`
+        : `<input class="manual" type="text" inputmode="decimal" data-nav-key="comb-${key}-${litrosField}" value="${litrosVal}" onchange="app.setCombustible('${key}','${litrosField}', this.value)">`;
+      manualHtml += `<tr>
+        <td style="background:${color};font-weight:700;">${c.label} P${tier}</td>
+        <td style="background:${color};">${litrosInput}</td>
+        <td style="background:${color};"><input class="manual" type="text" inputmode="decimal" data-nav-key="comb-${key}-${precioField}" value="${precioVal}" onchange="app.setCombustible('${key}','${precioField}', this.value)"></td>
+      </tr>`;
+    });
+    manualHtml += `<tr><td colspan="3" style="background:${color};opacity:.85;padding:3px 6px;">
+      <button class="btn ghost" style="padding:3px 10px;font-size:11px;" onclick="app.addCorte('${key}')" ${nT>=MAX_TIERS?'disabled':''}>+ Agregar precio</button>
+      ${nT>2?`<button class="btn ghost" style="padding:3px 10px;font-size:11px;margin-left:6px;" onclick="app.removeCorte('${key}')">− Quitar P${nT}</button>`:''}
+    </td></tr>`;
+  });
+  manualHtml += '</tbody></table>';
+  document.getElementById('combustibles-manual-tabla').innerHTML = manualHtml;
+
+  // --- tabla calculada (derecha): importe por producto ---
+  let autoHtml = '<table class="xls"><thead><tr><th>Producto</th><th>Importe</th></tr></thead><tbody>';
+  COMBUSTIBLE_ORDEN.forEach(key=>{
+    const c = a.combustibles[key];
+    const cc = calc.combustibles[key];
+    autoHtml += `<tr><td class="label">${c.label}</td><td>${moneyInput(cc.total)}</td></tr>`;
+  });
+  autoHtml += `<tr><td class="label">Lubricantes playa (NO COMBUSTIBLES)</td><td>${moneyInput(calc.lubricantesPlaya)}</td></tr>`;
+  autoHtml += `<tr class="total"><td>TOTAL COMBUSTIBLE + LUBRICANTES</td><td>${moneyColored(calc.importeCombustibleTotal+calc.lubricantesPlaya)}</td></tr>`;
+  autoHtml += '</tbody></table>';
+  document.getElementById('combustibles-auto-tabla').innerHTML = autoHtml;
+}
+
+function renderPersonalPool(){
+  const el = document.getElementById('personal-pool');
+  if(!state.personal.length){ el.innerHTML = '<span class="small">Todavía no cargaste una lista de personal. Subí un Excel con los nombres (una columna) o agregalos con el campo de abajo.</span>'; return; }
+  el.innerHTML = state.personal.map(n=>
+    `<span class="chip-name" draggable="true" data-nombre="${escapeHtml(n)}" ondragstart="app.dragStartPersonal(event)">${escapeHtml(n)}</span>`
+  ).join('');
+}
+function dragStartPersonal(e){ e.dataTransfer.setData('text/plain', e.target.dataset.nombre); }
+function dragOverZone(e){ e.preventDefault(); e.currentTarget.classList.add('dragover'); }
+function dragLeaveZone(e){ e.currentTarget.classList.remove('dragover'); }
+function dropZone(e, arrKey, i){
+  e.preventDefault(); e.currentTarget.classList.remove('dragover');
+  const nombre = e.dataTransfer.getData('text/plain');
+  asignarPersonal(arrKey, i, nombre);
+}
+const GRUPOS_CRUZADOS_PLAYA = ['faltantePlaya', 'sobrantePlaya'];
+function otrasAsignaciones(nombre, excludeArrKey, excludeIndex){
+  const a = state.asiento;
+  const playaTurnos = Array.from({length: a.turnosPlaya}, (_,i)=> num(a.playaBase)+i);
+  const out = [];
+  const signoPorGrupo = {faltantePlaya:true, sobrantePlaya:false}; // true = solo cuenta si la diferencia es negativa
+  GRUPOS_CRUZADOS_PLAYA.forEach(key=>{
+    state.asiento[key].forEach((grp, gi)=>{
+      if(key===excludeArrKey && gi===excludeIndex) return;
+      // un turno en $0 (o del signo contrario) no es visible en pantalla: no cuenta como "ya asignado"
+      const diff = diferenciaPlanilla(playaTurnos[gi]);
+      const visible = signoPorGrupo[key] ? diff<0 : diff>0;
+      if(!visible) return;
+      const p = grp.asignados.find(p=>p.nombre===nombre);
+      if(p) out.push(p);
+    });
+  });
+  return out;
+}
+function asignarPersonal(arrKey, i, nombre){
+  if(!nombre) return;
+  const g = state.asiento[arrKey][i];
+  if(g.asignados.some(p=>p.nombre===nombre)) return;
+  let tipo = 'completo';
+  if(GRUPOS_CRUZADOS_PLAYA.includes(arrKey)){
+    // si la persona ya está en otro turno de faltante y/o sobrante playa, todas esas asignaciones pasan a medio turno
+    const otros = otrasAsignaciones(nombre, arrKey, i);
+    if(otros.length){
+      tipo = 'medio';
+      otros.forEach(p=> p.tipo = 'medio');
+    }
+  }
+  g.asignados.push({nombre, tipo});
+  save(); renderAll();
+}
+function quitarAsignado(arrKey, i, nombre){
+  const g = state.asiento[arrKey][i];
+  g.asignados = g.asignados.filter(p=>p.nombre!==nombre);
+  if(GRUPOS_CRUZADOS_PLAYA.includes(arrKey)){
+    // si tras sacarlo la persona queda en una sola asignación (faltante o sobrante), vuelve a completo
+    const restantes = otrasAsignaciones(nombre, null, null);
+    if(restantes.length===1 && restantes[0].tipo==='medio') restantes[0].tipo = 'completo';
+  }
+  save(); renderAll();
+}
+function toggleTipoAsignado(arrKey, i, nombre){
+  const g = state.asiento[arrKey][i];
+  const p = g.asignados.find(p=>p.nombre===nombre);
+  if(!p) return;
+  p.tipo = p.tipo==='completo' ? 'medio' : p.tipo==='medio' ? 'cuarto' : 'completo';
+  save(); renderAll();
+}
+
+/* --- cantidad de turnos activos --- */
+function syncGroups(){
+  const a = state.asiento;
+  function resize(arr, count, labels){
+    while(arr.length < count) arr.push({turno: labels[arr.length], asignados:[]});
+    while(arr.length > count) arr.pop();
+    arr.forEach((g,i)=> g.turno = labels[i]);
+  }
+  resize(a.faltantePlaya, a.turnosPlaya, PLAYA_TURNO_LABELS);
+  resize(a.sobrantePlaya, a.turnosPlaya, PLAYA_TURNO_LABELS);
+  resize(a.faltanteFull, a.turnosFull, FULL_TURNO_LABELS);
+}
+function addTurno(tipo){
+  const a = state.asiento;
+  if(tipo==='playa' && a.turnosPlaya < PLAYA_TURNO_LABELS.length) a.turnosPlaya++;
+  if(tipo==='full' && a.turnosFull < FULL_TURNO_LABELS.length) a.turnosFull++;
+  syncGroups(); save(); renderAll();
+}
+function removeTurno(tipo){
+  const a = state.asiento;
+  if(tipo==='playa' && a.turnosPlaya > 1) a.turnosPlaya--;
+  if(tipo==='full' && a.turnosFull > 1) a.turnosFull--;
+  syncGroups(); save(); renderAll();
+}
+
+function renderGrupos(containerId, arrKey, calcArr){
+  const activos = calcArr.map((g,i)=>({g,i})).filter(({g})=> g.valor!==0);
+  const TIPO_LABEL = {completo:'', medio:'· medio turno', cuarto:'· cuarto de turno'};
+  if(!activos.length){ document.getElementById(containerId).innerHTML = '<div class="small">No hay diferencias en este grupo.</div>'; return; }
+  let html = '';
+  activos.forEach(({g,i})=>{
+    const chips = (g.asignados||[]).map(p=>{
+      const jsName = escapeJs(p.nombre);
+      const onclickToggle = escapeHtml(`app.toggleTipoAsignado('${arrKey}',${i},'${jsName}')`);
+      const onclickRemove = escapeHtml(`event.stopPropagation();app.quitarAsignado('${arrKey}',${i},'${jsName}')`);
+      return `<span class="chip-assigned ${p.tipo}" onclick="${onclickToggle}" title="Click para cambiar: completo / medio / cuarto">
+        ${escapeHtml(p.nombre)}${p.tipo!=='completo' ? ` <b>${TIPO_LABEL[p.tipo]}</b>` : ''} <span class="x" onclick="${onclickRemove}">✕</span>
+      </span>`;
+    }).join('');
+    html += `<div class="subgrid">
+      <div class="subgrid-head"><span>${g.turno}${g.asignados&&g.asignados.length?` <span class="small">(${g.asignados.length})</span>`:''}</span><span>${moneyColored(g.valor)}</span></div>
+      <div class="drop-zone" ondragover="app.dragOverZone(event)" ondragleave="app.dragLeaveZone(event)" ondrop="app.dropZone(event,'${arrKey}',${i})">
+        ${chips || '<span class="small">Arrastrá nombres acá…</span>'}
+      </div>
+      ${g.asignados && g.asignados.length ? `<div class="small" style="margin-top:6px;">Personas: ${g.totalPersonas} (completos: ${g.completos}, medios: ${g.medios}, cuartos: ${g.cuartos}) — cuota completo: ${moneyColored(g.pCompleto)} · medio: ${moneyColored(g.pMedio)} · cuarto: ${moneyColored(g.pCuarto)}</div>` : ''}
+    </div>`;
+  });
+  document.getElementById(containerId).innerHTML = html;
+}
+function setCardOpen(id, isOpen){
+  const el = document.getElementById(id);
+  if(el) el.open = isOpen;
+}
+function renderResumenFaltantesSobrantes(calc){
+  const a = state.asiento;
+  const rows = [];
+  calc.faltantePlayaCalc.forEach((g,i)=>{ if(g.valor!==0) rows.push({tipo:'Faltante Playa', turno:g.turno, planilla:(a.playaBase??0)+i, colaboradores:g.asignados, monto:g.valor}); });
+  calc.sobrantePlayaCalc.forEach((g,i)=>{ if(g.valor!==0) rows.push({tipo:'Sobrante Playa', turno:g.turno, planilla:(a.playaBase??0)+i, colaboradores:g.asignados, monto:g.valor}); });
+  calc.faltanteFullCalc.forEach((g,i)=>{ if(g.valor!==0) rows.push({tipo:'Faltante Full', turno:g.turno, planilla:(a.fullBase??0)+i, colaboradores:g.asignados, monto:g.valor}); });
+  const ORDEN_TURNO = ['Mañana','Tarde','Noche','ST1','ST2','ST3'];
+  rows.sort((x,y)=> ORDEN_TURNO.indexOf(x.turno) - ORDEN_TURNO.indexOf(y.turno));
+
+  const el = document.getElementById('resumen-faltantes-sobrantes');
+  if(!rows.length){ el.innerHTML = '<div class="small">No hay faltantes ni sobrantes cargados por ahora.</div>'; return; }
+  const TIPO_SUF = {medio:' (medio)', cuarto:' (cuarto)'};
+  let html = '<table class="xls"><thead><tr><th>Tipo</th><th>Turno</th><th>N° Planilla</th><th>Colaboradores</th><th>Monto</th></tr></thead><tbody>';
+  rows.forEach(r=>{
+    const colabText = (r.colaboradores && r.colaboradores.length)
+      ? r.colaboradores.map(p=> escapeHtml(p.nombre) + (TIPO_SUF[p.tipo]||'')).join(', ')
+      : '<span class="small">Sin asignar</span>';
+    html += `<tr><td class="label">${r.tipo}</td><td class="label">${r.turno}</td><td>${r.planilla}</td><td class="label">${colabText}</td><td>${moneyColored(r.monto)}</td></tr>`;
+  });
+  html += '</tbody></table>';
+  el.innerHTML = html;
+}
+function setCombustible(key, field, val){
+  const c = state.asiento.combustibles[key];
+  const newVal = round2(num(val));
+  if(/^litros([2-9]|10)$/.test(field)){
+    // lo que se carga en los cortes 2..N sale del corte 1, para mantener el total de litros constante
+    const oldVal = num(c[field]);
+    c.litros1 = round2(num(c.litros1) - (newVal - oldVal));
+  }
+  c[field] = newVal;
+  save(); renderAll();
+}
+function addCorte(key){
+  const c = state.asiento.combustibles[key];
+  if(tiersOf(c) < MAX_TIERS){ const n = tiersOf(c)+1; c.nTiers = n; if(c['litros'+n]===undefined) c['litros'+n]=0; if(c['precio'+n]===undefined) c['precio'+n]=0; }
+  save(); renderAll();
+}
+function removeCorte(key){
+  const c = state.asiento.combustibles[key];
+  const n = tiersOf(c);
+  if(n > 2){
+    // los litros del último corte vuelven al corte 1 para no perder el total
+    c.litros1 = round2(num(c.litros1) + num(c['litros'+n]));
+    c['litros'+n] = 0; c['precio'+n] = 0;
+    c.nTiers = n-1;
+  }
+  save(); renderAll();
+}
+function setExtra(key, idx, field, val){
+  state.asiento.combustibles[key].extra[idx][field] = round2(num(val));
+  save(); renderAll();
+}
+function hojaVal(key, def){ const v = state.asiento.hoja[key]; return v===undefined ? (def||0) : num(v); }
+function setHoja(key, val){ state.asiento.hoja[key] = round2(num(val)); save(); renderAll(); }
+function canjeVal(key){ return num(state.asiento.canjes[key]); }
+function setCanje(key, val){ state.asiento.canjes[key] = round2(num(val)); save(); renderAll(); }
+
+function renderLista(tbodyId, arr, fields, editFn, removeFn){
+  const tbody = document.getElementById(tbodyId);
+  if(!arr.length){ tbody.innerHTML = `<tr><td colspan="3" class="small">Sin filas.</td></tr>`; return; }
+  tbody.innerHTML = arr.map((item,i)=>`
+    <tr>
+      <td class="label"><input data-nav-key="lista-${tbodyId}-${i}-${fields[0]}" value="${escapeHtml(item[fields[0]]||'')}" onchange="app.${editFn}(${i}, '${fields[0]}', this.value)"></td>
+      <td><input class="manual" type="text" inputmode="decimal" data-nav-key="lista-${tbodyId}-${i}-${fields[1]}" value="${item[fields[1]]||''}" onchange="app.${editFn}(${i}, '${fields[1]}', this.value)"></td>
+      <td><button class="btn danger" onclick="app.${removeFn}(${i})">✕</button></td>
+    </tr>`).join('');
+}
+function addAdelanto(){ state.asiento.adelantos.push({concepto:'', monto:0, lugar:'playa', colaborador:''}); save(); renderAll(); }
+function removeAdelanto(i){ state.asiento.adelantos.splice(i,1); save(); renderAll(); }
+function editAdelanto(i, field, val){ state.asiento.adelantos[i][field] = field==='monto'?num(val):val; save(); renderAll(); }
+function renderAdelantos(){
+  const arr = state.asiento.adelantos;
+  const tbody = document.getElementById('tbody-adelantos');
+  if(!arr.length){ tbody.innerHTML = '<tr><td colspan="5" class="small">Sin adelantos cargados.</td></tr>'; return; }
+  const nombresDisponibles = Array.from(new Set([...PERSONAL_ORDEN, ...state.personal]));
+  tbody.innerHTML = arr.map((item,i)=>{
+    const colabOptions = ['<option value="">—</option>'].concat(
+      nombresDisponibles.map(n=> `<option value="${escapeHtml(n)}" ${item.colaborador===n?'selected':''}>${escapeHtml(n)}</option>`)
+    ).join('');
+    return `<tr>
+      <td class="label"><input value="${escapeHtml(item.concepto||'')}" onchange="app.editAdelanto(${i},'concepto', this.value)"></td>
+      <td><input class="manual" type="text" inputmode="decimal" value="${item.monto||''}" onchange="app.editAdelanto(${i},'monto', this.value)"></td>
+      <td><select onchange="app.editAdelanto(${i},'lugar', this.value)">
+        <option value="playa" ${item.lugar!=='full'?'selected':''}>Playa</option>
+        <option value="full" ${item.lugar==='full'?'selected':''}>Full</option>
+      </select></td>
+      <td><select onchange="app.editAdelanto(${i},'colaborador', this.value)">${colabOptions}</select></td>
+      <td><button class="btn danger" onclick="app.removeAdelanto(${i})">✕</button></td>
+    </tr>`;
+  }).join('');
+}
+function renderColaboradorNeto(calc){
+  const el = document.getElementById('resumen-colaboradores');
+  if(!el) return;
+  let html = '<table class="xls"><thead><tr><th>Colaborador</th><th>Sobrante / Faltante del día</th></tr></thead><tbody>';
+  calc.colaboradorNeto.forEach(p=>{
+    html += `<tr><td class="label">${escapeHtml(p.nombre)}</td><td>${moneyColored(p.monto)}</td></tr>`;
+  });
+  html += '</tbody></table>';
+  el.innerHTML = html;
+}
+
+function renderRecaudacionYTarjetas(){
+  const c = calcular();
+  let rec = '<table class="xls"><thead><tr><th>Concepto</th><th>Playa</th><th>Full</th></tr></thead><tbody>';
+  rec += `<tr><td class="label">Recaudación (efectivo)</td><td class="playa">${moneyColored(c.recaudacionPlayaBruta)}</td><td class="full">${moneyColored(c.recaudacionFullBruta)}</td></tr>`;
+  rec += `<tr><td class="label">Cuentas corrientes</td><td class="playa">${moneyColored(c.ctaCtePlaya)}</td><td class="full">${moneyColored(c.ctaCteFull)}</td></tr>`;
+  rec += `<tr><td class="label">Mercado Pago</td><td class="playa">${moneyColored(c.mpPlaya)}</td><td class="full">${moneyColored(c.mpFull)}</td></tr>`;
+  rec += `<tr><td class="label">App YPF</td><td class="playa">${moneyColored(c.appYpfPlaya)}</td><td class="full">${moneyColored(c.appYpfFull)}</td></tr>`;
+  rec += `<tr><td class="label">Descuentos App</td><td class="playa">${moneyColored(c.dtoAppPlaya)}</td><td class="full">${moneyColored(c.dtoAppFull)}</td></tr>`;
+  rec += `<tr><td class="label">Otros canjes</td><td class="playa">${moneyColored(state.asiento.otrosCanjesPlaya)}</td><td class="full">${moneyColored(state.asiento.otrosCanjesFull)}</td></tr>`;
+  rec += `<tr><td class="label">Diferencia de precios</td><td class="playa">${moneyColored(state.asiento.difPrecios)}</td><td class="full">—</td></tr>`;
+  c.rutaPorTurno.forEach((v,i)=>{
+    rec += `<tr><td class="label">YPF ruta — ${PLAYA_TURNO_LABELS[i]}</td><td class="playa">${moneyColored(v)}</td><td class="full">—</td></tr>`;
+  });
+  rec += `<tr><td class="label">Pedidos YA</td><td class="playa">—</td><td class="full">${moneyColored(c.pedidosYa)}</td></tr>`;
+  rec += '</tbody></table>';
+  document.getElementById('tabla-recaudacion').innerHTML = rec;
+
+  let tarj = '<table class="xls"><thead><tr><th>Turno</th><th>Playa</th><th>Full</th></tr></thead><tbody>';
+  const maxTurnos = Math.max(state.asiento.turnosPlaya, state.asiento.turnosFull);
+  for(let i=0;i<maxTurnos;i++){
+    const label = i<PLAYA_TURNO_LABELS.length ? PLAYA_TURNO_LABELS[i] : FULL_TURNO_LABELS[i];
+    const playaVal = i<state.asiento.turnosPlaya ? moneyColored(c.tarjetasPlayaPorTurno[i]||0) : '—';
+    const fullVal = i<state.asiento.turnosFull ? moneyColored(c.tarjetasFullPorTurno[i]||0) : '—';
+    tarj += `<tr><td class="label">${label}</td><td class="playa">${playaVal}</td><td class="full">${fullVal}</td></tr>`;
+  }
+  tarj += `<tr class="total"><td>TOTAL</td><td>${moneyColored(c.tarjetasPlayaTotal)}</td><td>${moneyColored(c.tarjetasFullTotal)}</td></tr></tbody></table>`;
+  document.getElementById('tabla-tarjetas').innerHTML = tarj;
+
+  let full = '<table class="xls"><thead><tr><th>Turno</th><th>Importe</th></tr></thead><tbody>';
+  c.fullPorTurno.forEach(x=>{
+    full += `<tr><td class="label">FULL ${x.turno.toUpperCase()}</td><td>${moneyColored(x.monto)}</td></tr>`;
+  });
+  full += `<tr class="total"><td>TOTAL</td><td>${moneyColored(c.fullPorTurnoTotal)}</td></tr>`;
+  full += '</tbody></table>';
+  document.getElementById('tabla-full-turno').innerHTML = full;
+
+  document.getElementById('tot-debe').innerHTML = moneyColored(c.totalDebe);
+  document.getElementById('tot-haber').innerHTML = moneyColored(c.totalHaber);
+  const diffEl = document.getElementById('tot-diferencia');
+  diffEl.textContent = money(c.diferencia);
+  diffEl.className = 'diff-box ' + (Math.abs(c.diferencia)<0.01 ? 'ok':'bad');
+}
+
+function renderResumen(){
+  const c = calcular();
+  let debeHtml = '<table class="xls"><tbody>';
+  c.debeItems.forEach(x=>{
+    const celda = x.hojaKey
+      ? manualAmountCell(state.asiento.hoja[x.hojaKey], `app.setHoja('${x.hojaKey}', this.value)`)
+      : moneyColored(x.monto);
+    debeHtml += `<tr><td class="label">${escapeHtml(x.concepto)}</td><td>${celda}</td></tr>`;
+  });
+  debeHtml += `<tr class="total"><td>TOTAL DEBE</td><td>${moneyColored(c.totalDebe)}</td></tr></tbody></table>`;
+  document.getElementById('resumen-debe').innerHTML = debeHtml;
+
+  let haberHtml = '<table class="xls"><thead><tr><th>Concepto</th><th>M/L</th><th>Precio</th><th>Importe</th></tr></thead><tbody>';
+  c.haberItems.forEach(x=>{
+    let ml, precio;
+    if(x.extraKey){
+      ml = manualAmountCell(state.asiento.combustibles[x.extraKey].extra[x.extraIdx].litros, `app.setExtra('${x.extraKey}',${x.extraIdx},'litros', this.value)`);
+      precio = manualAmountCell(state.asiento.combustibles[x.extraKey].extra[x.extraIdx].precio, `app.setExtra('${x.extraKey}',${x.extraIdx},'precio', this.value)`);
+    } else if(x.canjeKey){
+      ml = manualAmountCell(state.asiento.canjes[x.canjeKey], `app.setCanje('${x.canjeKey}', this.value)`);
+      precio = moneyColored(x.precio);
+    } else {
+      ml = x.litros!==undefined ? round2(x.litros).toLocaleString('es-AR',{minimumFractionDigits:2,maximumFractionDigits:2}) : '—';
+      precio = (x.precio!==undefined && x.precio!==null) ? moneyColored(x.precio) : '—';
+    }
+    const importe = x.hojaKey
+      ? manualAmountCell(state.asiento.hoja[x.hojaKey], `app.setHoja('${x.hojaKey}', this.value)`)
+      : moneyColored(x.monto);
+    haberHtml += `<tr><td class="label">${escapeHtml(x.concepto)}</td><td>${ml}</td><td>${precio}</td><td>${importe}</td></tr>`;
+  });
+  haberHtml += `<tr class="total"><td>TOTAL HABER</td><td></td><td></td><td>${moneyColored(c.totalHaber)}</td></tr></tbody></table>`;
+  document.getElementById('resumen-haber').innerHTML = haberHtml;
+
+  document.getElementById('r-tot-debe').innerHTML = moneyColored(c.totalDebe);
+  document.getElementById('r-tot-haber').innerHTML = moneyColored(c.totalHaber);
+  const diffEl = document.getElementById('r-diferencia');
+  diffEl.textContent = money(c.diferencia);
+  diffEl.className = 'diff-box ' + (Math.abs(c.diferencia)<0.01 ? 'ok':'bad');
+
+  let tarj = '<table class="xls"><thead><tr><th>Turno</th><th>Playa</th><th>Full</th></tr></thead><tbody>';
+  const maxTurnos = Math.max(state.asiento.turnosPlaya, state.asiento.turnosFull);
+  for(let i=0;i<maxTurnos;i++){
+    const label = i<PLAYA_TURNO_LABELS.length ? PLAYA_TURNO_LABELS[i] : FULL_TURNO_LABELS[i];
+    const playaVal = i<state.asiento.turnosPlaya ? moneyColored(c.tarjetasPlayaPorTurno[i]||0) : '—';
+    const fullVal = i<state.asiento.turnosFull ? moneyColored(c.tarjetasFullPorTurno[i]||0) : '—';
+    tarj += `<tr><td class="label">${label}</td><td class="playa">${playaVal}</td><td class="full">${fullVal}</td></tr>`;
+  }
+  tarj += `<tr><td class="label">Pedidos YA (tarjeta)</td><td class="playa">—</td><td class="full">${manualAmountCell(state.asiento.pedidosYaTarjetaFull, "app.setNum('asiento.pedidosYaTarjetaFull', this.value)")}</td></tr>`;
+  const tarjFullTotalConPedidos = round2(c.tarjetasFullTotal + num(state.asiento.pedidosYaTarjetaFull));
+  tarj += `<tr class="total"><td>TOTAL</td><td>${moneyColored(c.tarjetasPlayaTotal)}</td><td>${moneyColored(tarjFullTotalConPedidos)}</td></tr></tbody></table>`;
+  document.getElementById('resumen-tarjetas').innerHTML = tarj;
+
+  let tarjBoxes = '<table class="xls"><thead><tr><th>Turno</th><th>Importe</th></tr></thead><tbody>';
+  tarjBoxes += `<tr><td class="label">Turno 1</td><td>${manualAmountCell(state.asiento.tarjBoxesTurno1, "app.setNum('asiento.tarjBoxesTurno1', this.value)")}</td></tr>`;
+  tarjBoxes += `<tr><td class="label">Turno 2</td><td>${manualAmountCell(state.asiento.tarjBoxesTurno2, "app.setNum('asiento.tarjBoxesTurno2', this.value)")}</td></tr>`;
+  const tarjBoxesTotal = round2(num(state.asiento.tarjBoxesTurno1) + num(state.asiento.tarjBoxesTurno2));
+  tarjBoxes += `<tr class="total"><td>TOTAL</td><td>${moneyColored(tarjBoxesTotal)}</td></tr></tbody></table>`;
+  document.getElementById('resumen-tarjetas-boxes').innerHTML = tarjBoxes;
+}
+
+function renderAll(){
+  const a = state.asiento;
+  document.getElementById('a-playaBase').value = a.playaBase ?? '';
+  document.getElementById('a-fullBase').value = a.fullBase ?? '';
+  document.getElementById('a-fechaPeya').value = a.fechaPeya;
+  document.getElementById('a-ajusteYer').value = a.ajusteYer || '';
+  document.getElementById('a-difPrecios').value = a.difPrecios || '';
+  document.getElementById('a-dtosApp').value = a.dtosAppAgregados || '';
+  document.getElementById('a-otrosCanjesPlaya').value = a.otrosCanjesPlaya || '';
+  document.getElementById('a-otrosCanjesFull').value = a.otrosCanjesFull || '';
+  document.getElementById('count-playa').textContent = a.turnosPlaya;
+  document.getElementById('count-full').textContent = a.turnosFull;
+  document.getElementById('turnos-playa-labels').innerHTML = PLAYA_TURNO_LABELS.slice(0,a.turnosPlaya)
+    .map((label,i)=> `<span class="chip">${(a.playaBase??0)+i} · ${label}</span>`).join('');
+  document.getElementById('turnos-full-labels').innerHTML = FULL_TURNO_LABELS.slice(0,a.turnosFull)
+    .map((label,i)=> `<span class="chip">${(a.fullBase??0)+i} · ${label}</span>`).join('');
+
+  renderGenericChip('chip-ingresos', state.baseIngresos.length, 'filas');
+  renderGenericChip('chip-otros', state.baseOtrosDespachos.length, 'filas');
+  renderGenericChip('chip-nocomb', state.noCombustibles.length, 'filas');
+  renderGenericChip('chip-peya', state.peya.length, 'filas');
+  renderGenericChip('chip-personal', state.personal.length, 'nombres');
+
+  renderCombustiblesTabla();
+  renderPersonalPool();
+  const calc = calcular();
+  renderGrupos('faltante-playa', 'faltantePlaya', calc.faltantePlayaCalc);
+  renderGrupos('sobrante-playa', 'sobrantePlaya', calc.sobrantePlayaCalc);
+  renderGrupos('faltante-full', 'faltanteFull', calc.faltanteFullCalc);
+  setCardOpen('card-faltante-playa', calc.faltantePlayaCalc.some(g=>g.valor!==0));
+  setCardOpen('card-sobrante-playa', calc.sobrantePlayaCalc.some(g=>g.valor!==0));
+  setCardOpen('card-faltante-full', calc.faltanteFullCalc.some(g=>g.valor!==0));
+  renderResumenFaltantesSobrantes(calc);
+  renderAdelantos();
+  renderColaboradorNeto(calc);
+  renderRecaudacionYTarjetas();
+  renderResumen();
+}
+
+/* =====================================================================
+   EXPORTAR / COPIAR / RESET
+   ===================================================================== */
+function copiarResumen(){
+  const c = calcular();
+  let text = 'QQN554 S.A.\nDEBE\t\tHABER\tM/L\tPrecio\tImporte\n';
+  const max = Math.max(c.debeItems.length, c.haberItems.length);
+  for(let i=0;i<max;i++){
+    const d = c.debeItems[i] || {concepto:'',monto:''};
+    const h = c.haberItems[i] || {concepto:'',monto:''};
+    const hLitros = h.litros!==undefined ? h.litros : '';
+    const hPrecio = (h.precio!==undefined && h.precio!==null) ? h.precio : '';
+    text += `${d.concepto}\t${d.monto!==''?d.monto:''}\t${h.concepto}\t${hLitros}\t${hPrecio}\t${h.monto!==''?h.monto:''}\n`;
+  }
+  text += `TOTAL\t${c.totalDebe}\tTOTAL\t\t\t${c.totalHaber}\nDIFERENCIA\t\t\t\t\t${c.diferencia}\n`;
+  if(!navigator.clipboard || !navigator.clipboard.writeText){
+    alert('Este navegador no permite copiar automáticamente. Descargá el .csv en su lugar.');
+    return;
+  }
+  navigator.clipboard.writeText(text)
+    .then(()=> alert('Copiado. Ya podés pegarlo en Excel.'))
+    .catch(()=> alert('No se pudo copiar al portapapeles. Probá descargando el .csv en su lugar.'));
+}
+function descargarCSV(){
+  const c = calcular();
+  let csv = 'Concepto,Monto\nDEBE,\n';
+  c.debeItems.forEach(x=> csv += `"${x.concepto}",${x.monto}\n`);
+  csv += `TOTAL DEBE,${c.totalDebe}\n\nConcepto,M/L,Precio,Importe\nHABER,,,\n`;
+  c.haberItems.forEach(x=> csv += `"${x.concepto}",${x.litros!==undefined?x.litros:''},${(x.precio!==undefined&&x.precio!==null)?x.precio:''},${x.monto}\n`);
+  csv += `TOTAL HABER,,,${c.totalHaber}\n\nDIFERENCIA,,,${c.diferencia}\n`;
+  const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url; link.download = `asiento_${state.asiento.fechaPeya||'dia'}.csv`;
+  link.click(); URL.revokeObjectURL(url);
+}
+function exportState(){
+  const blob = new Blob([JSON.stringify(state,null,2)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url; link.download = `qqn554_asiento_${(state.asiento.fechaPeya||'copia')}.json`;
+  link.click(); URL.revokeObjectURL(url);
+}
+function importState(file){
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = e=>{
+    try{
+      const parsed = JSON.parse(e.target.result);
+      const def = DEFAULT_STATE();
+      state = Object.assign(def, parsed, {asiento: Object.assign(def.asiento, parsed.asiento||{})});
+      if(!state.personal) state.personal = [];
+      save(); renderAll();
+      alert('Copia importada correctamente.');
+    }catch(err){ alert('No se pudo leer el archivo.'); }
+  };
+  reader.readAsText(file, 'utf-8');
+}
+function nuevoDia(){
+  // Panel propio en la página (confirm() queda bloqueado en algunos visores).
+  document.getElementById('modal-nuevo-dia').style.display = 'flex';
+  document.getElementById('modal-nuevo-dia-error').textContent = '';
+}
+function cancelarNuevoDia(){ document.getElementById('modal-nuevo-dia').style.display = 'none'; }
+function confirmarNuevoDia(){
+  const errEl = document.getElementById('modal-nuevo-dia-error');
+  try{
+    const a = state.asiento;
+    const personal = state.personal || [];
+    const def = DEFAULT_STATE();
+    const precios = {};
+    for(const key in a.combustibles){
+      const c = a.combustibles[key] || {};
+      precios[key] = {nTiers: tiersOf(c)};
+      for(let t=1;t<=MAX_TIERS;t++){ if(c['precio'+t]!==undefined) precios[key]['precio'+t] = num(c['precio'+t]); }
+    }
+    const nuevo = def;
+    nuevo.personal = personal;
+    for(const key in nuevo.asiento.combustibles) Object.assign(nuevo.asiento.combustibles[key], precios[key]||{});
+    nuevo.asiento.playaBase = a.playaBase;
+    nuevo.asiento.fullBase = a.fullBase;
+    nuevo.asiento.turnosPlaya = a.turnosPlaya;
+    nuevo.asiento.turnosFull = a.turnosFull;
+    state = nuevo;
+    syncGroups();
+    state.asiento.fechaPeya = new Date(Date.now()-86400000).toISOString().slice(0,10);
+    save();
+    document.getElementById('modal-nuevo-dia').style.display = 'none';
+    renderAll();
+    document.querySelectorAll('input[type=file]').forEach(i=>{ i.value=''; });
+    showUploadError('');
+  }catch(e){
+    errEl.textContent = 'No se pudo limpiar el día: ' + e.message;
+  }
+}
+Object.assign(app, {
+  setCombustible, dragStartPersonal, dragOverZone, dragLeaveZone, dropZone, asignarPersonal, quitarAsignado, toggleTipoAsignado,
+  addTurno, removeTurno,
+  addAdelanto, removeAdelanto, editAdelanto, renderAdelantos,
+  copiarResumen, descargarCSV, exportState, importState, nuevoDia, cancelarNuevoDia, confirmarNuevoDia,
+});
+
+/* =====================================================================
+   NAVEGACIÓN DE TABS
+   ===================================================================== */
+document.querySelectorAll('nav button').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('nav button').forEach(b=>b.classList.remove('active'));
+    document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('tab-'+btn.dataset.tab).classList.add('active');
+  });
+});
+
+/* =====================================================================
+   NAVEGACIÓN POR TECLADO ENTRE CASILLEROS
+   Enter -> siguiente casillero editable. Escape -> anterior.
+   Los campos manuales re-renderizan su tabla al confirmar el valor (onchange),
+   así que el nodo "siguiente" puede quedar obsoleto: por eso se identifica por
+   una clave estable (id o data-nav-key) y se busca DE NUEVO recién después de
+   que el posible re-render haya terminado.
+   ===================================================================== */
+// al entrar a cualquier casillero de texto (click, tab, etc.) selecciona todo su contenido,
+// así tipear directamente reemplaza el valor en vez de insertarse en medio.
+document.addEventListener('focusin', function(e){
+  const el = e.target;
+  if(el && el.tagName==='INPUT' && el.type==='text' && !el.readOnly && !el.disabled && el.select) el.select();
+});
+function getNavigableInputs(){
+  return Array.from(document.querySelectorAll('input'))
+    .filter(el=> el.type!=='file' && el.type!=='hidden' && !el.readOnly && !el.disabled);
+}
+function navKeyOf(el){ return el.id || el.dataset.navKey || null; }
+function findByNavKey(key){
+  if(!key) return null;
+  return document.getElementById(key) || document.querySelector(`[data-nav-key="${CSS.escape(key)}"]`);
+}
+document.addEventListener('keydown', function(e){
+  if(e.key!=='Enter' && e.key!=='Escape') return;
+  const el = e.target;
+  if(!el || el.tagName!=='INPUT' || el.type==='file') return;
+  const inputs = getNavigableInputs();
+  const idx = inputs.indexOf(el);
+  if(idx===-1) return;
+  e.preventDefault();
+  const nextEl = inputs[idx + (e.key==='Enter' ? 1 : -1)];
+  const nextKey = nextEl ? navKeyOf(nextEl) : null;
+  const fallbackIdx = idx + (e.key==='Enter' ? 1 : -1);
+  // confirma el valor actual (dispara onchange -> posible renderAll) ANTES de buscar el siguiente
+  el.blur();
+  let target = findByNavKey(nextKey);
+  if(!target){
+    // el layout puede haber cambiado tras el re-render; usar la misma posición relativa como respaldo
+    const freshInputs = getNavigableInputs();
+    target = freshInputs[Math.min(Math.max(fallbackIdx,0), freshInputs.length-1)];
+  }
+  if(target){ target.focus(); if(target.select) target.select(); }
+});
+
+renderAll();
+</script>
+</body>
+</html>
