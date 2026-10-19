@@ -261,30 +261,16 @@ table.xls td.full{background:#fff8ea;}
       </div>
 
       <div class="card">
-        <details id="card-faltante-playa">
-          <summary class="card-summary"><span class="chev">▸</span> Faltante de playa (por turno)</summary>
-          <div id="faltante-playa"></div>
+        <details id="card-dif-playa">
+          <summary class="card-summary"><span class="chev">▸</span> Faltantes y sobrantes — Playa (por turno)</summary>
+          <div id="dif-playa"></div>
         </details>
       </div>
 
       <div class="card">
-        <details id="card-sobrante-playa">
-          <summary class="card-summary"><span class="chev">▸</span> Sobrante de playa (por turno)</summary>
-          <div id="sobrante-playa"></div>
-        </details>
-      </div>
-
-      <div class="card">
-        <details id="card-faltante-full">
-          <summary class="card-summary"><span class="chev">▸</span> Faltante Full / Shop (por turno)</summary>
-          <div id="faltante-full"></div>
-        </details>
-      </div>
-
-      <div class="card">
-        <details id="card-sobrante-full">
-          <summary class="card-summary"><span class="chev">▸</span> Sobrante Full / Shop (por turno)</summary>
-          <div id="sobrante-full"></div>
+        <details id="card-dif-full">
+          <summary class="card-summary"><span class="chev">▸</span> Faltantes y sobrantes — Full / Shop (por turno)</summary>
+          <div id="dif-full"></div>
         </details>
       </div>
 
@@ -1077,8 +1063,13 @@ function calcular(){
     let baseMonto = 0;
     if(planilla!==null){
       const row = state.baseIngresos.find(r=> r.lug===LUG_FULL && r.planilla===planilla);
-      // solo el sobrante (diferencia positiva) se resta del turno; el faltante Full no modifica la recaudación del turno
-      if(row) baseMonto = num(row.total) - Math.max(num(row.diferencia), 0);
+      if(row){
+        // Igual que el Excel original (ASIENTO!F31:F35 = total − diferencia + Pedidos YA + faltante del turno):
+        // el faltante Full se suma además a la línea del turno, porque también figura como renglón en el DEBE.
+        const dif = num(row.diferencia);
+        const faltante = dif<0 ? -dif : 0;
+        baseMonto = num(row.total) - dif + faltante;
+      }
     }
     const peya = sumPeyaPorTurnoFecha(label, a.fechaPeya);
     return {turno:label, monto: baseMonto+peya};
@@ -1340,12 +1331,15 @@ function removeTurno(tipo){
   syncGroups(); save(); renderAll();
 }
 
-function renderGrupos(containerId, arrKey, calcArr){
-  const activos = calcArr.map((g,i)=>({g,i})).filter(({g})=> g.valor!==0);
+function renderGrupos(containerId, grupos){
+  // grupos: [{arrKey, calcArr, tipo}] -> se mezclan y se ordenan siempre por turno (Mañana, Tarde, Noche, ST1, ST2, ST3)
+  const activos = [];
+  grupos.forEach(({arrKey,calcArr,tipo})=> calcArr.forEach((g,i)=>{ if(g.valor!==0) activos.push({g,i,arrKey,tipo}); }));
+  activos.sort((x,y)=> x.i - y.i || (x.tipo==='Faltante' ? -1 : 1));
   const TIPO_LABEL = {completo:'', medio:'· medio turno', cuarto:'· cuarto de turno'};
   if(!activos.length){ document.getElementById(containerId).innerHTML = '<div class="small">No hay diferencias en este grupo.</div>'; return; }
   let html = '';
-  activos.forEach(({g,i})=>{
+  activos.forEach(({g,i,arrKey,tipo})=>{
     const chips = (g.asignados||[]).map(p=>{
       const jsName = escapeJs(p.nombre);
       const onclickToggle = escapeHtml(`app.toggleTipoAsignado('${arrKey}',${i},'${jsName}')`);
@@ -1355,7 +1349,7 @@ function renderGrupos(containerId, arrKey, calcArr){
       </span>`;
     }).join('');
     html += `<div class="subgrid">
-      <div class="subgrid-head"><span>${g.turno}${g.asignados&&g.asignados.length?` <span class="small">(${g.asignados.length})</span>`:''}</span><span>${moneyColored(g.valor)}</span></div>
+      <div class="subgrid-head"><span>${tipo} ${g.turno}${g.asignados&&g.asignados.length?` <span class="small">(${g.asignados.length})</span>`:''}</span><span>${moneyColored(g.valor)}</span></div>
       <div class="drop-zone" ondragover="app.dragOverZone(event)" ondragleave="app.dragLeaveZone(event)" ondrop="app.dropZone(event,'${arrKey}',${i})">
         ${chips || '<span class="small">Arrastrá nombres acá…</span>'}
       </div>
@@ -1364,9 +1358,13 @@ function renderGrupos(containerId, arrKey, calcArr){
   });
   document.getElementById(containerId).innerHTML = html;
 }
+// La tarjeta de faltante/sobrante solo se muestra si hay alguna diferencia en ese grupo; si se muestra, queda abierta.
 function setCardOpen(id, isOpen){
   const el = document.getElementById(id);
-  if(el) el.open = isOpen;
+  if(!el) return;
+  el.open = isOpen;
+  const card = el.closest('.card');
+  if(card) card.style.display = isOpen ? '' : 'none';
 }
 function renderResumenFaltantesSobrantes(calc){
   const a = state.asiento;
@@ -1377,12 +1375,12 @@ function renderResumenFaltantesSobrantes(calc){
   mk(calc.sobrantePlayaCalc, 'Sobrante', a.playaBase, playa);
   mk(calc.faltanteFullCalc, 'Faltante', a.fullBase, full);
   mk(calc.sobranteFullCalc, 'Sobrante', a.fullBase, full);
-  [playa, full].forEach(rows=> rows.sort((x,y)=> ORDEN_TURNO.indexOf(x.turno) - ORDEN_TURNO.indexOf(y.turno)));
+  [playa, full].forEach(rows=> rows.sort((x,y)=> x.planilla - y.planilla)); // siempre por N° de planilla (turno)
 
   const TIPO_SUF = {medio:' (medio)', cuarto:' (cuarto)'};
   function tabla(titulo, clase, rows){
     let html = `<h3 class="${clase}" style="font-size:13px;margin:10px 0 6px;">${titulo}</h3>`;
-    if(!rows.length) return html + '<div class="small">No hay faltantes ni sobrantes cargados por ahora.</div>';
+    if(!rows.length) return '';
     html += '<table class="xls"><thead><tr><th>Tipo</th><th>Turno</th><th>N° Planilla</th><th>Colaboradores</th><th>Monto</th></tr></thead><tbody>';
     rows.forEach(r=>{
       const colabText = (r.colaboradores && r.colaboradores.length)
@@ -1394,7 +1392,8 @@ function renderResumenFaltantesSobrantes(calc){
     html += `<tr class="total"><td colspan="4">TOTAL ${titulo.toUpperCase()}</td><td>${moneyColored(total)}</td></tr></tbody></table>`;
     return html;
   }
-  document.getElementById('resumen-faltantes-sobrantes').innerHTML = tabla('Playa','playa',playa) + tabla('Full / Shop','full',full);
+  const htmlResumen = (playa.length ? tabla('Playa','playa',playa) : '') + (full.length ? tabla('Full / Shop','full',full) : '');
+  document.getElementById('resumen-faltantes-sobrantes').innerHTML = htmlResumen || '<div class="small">No hay faltantes ni sobrantes cargados por ahora.</div>';
 }
 function setCombustible(key, field, val){
   const c = state.asiento.combustibles[key];
@@ -1606,14 +1605,10 @@ function renderAll(){
   renderCombustiblesTabla();
   renderPersonalPool();
   const calc = calcular();
-  renderGrupos('faltante-playa', 'faltantePlaya', calc.faltantePlayaCalc);
-  renderGrupos('sobrante-playa', 'sobrantePlaya', calc.sobrantePlayaCalc);
-  renderGrupos('faltante-full', 'faltanteFull', calc.faltanteFullCalc);
-  renderGrupos('sobrante-full', 'sobranteFull', calc.sobranteFullCalc);
-  setCardOpen('card-faltante-playa', calc.faltantePlayaCalc.some(g=>g.valor!==0));
-  setCardOpen('card-sobrante-playa', calc.sobrantePlayaCalc.some(g=>g.valor!==0));
-  setCardOpen('card-faltante-full', calc.faltanteFullCalc.some(g=>g.valor!==0));
-  setCardOpen('card-sobrante-full', calc.sobranteFullCalc.some(g=>g.valor!==0));
+  renderGrupos('dif-playa', [{arrKey:'faltantePlaya',calcArr:calc.faltantePlayaCalc,tipo:'Faltante'},{arrKey:'sobrantePlaya',calcArr:calc.sobrantePlayaCalc,tipo:'Sobrante'}]);
+  renderGrupos('dif-full', [{arrKey:'faltanteFull',calcArr:calc.faltanteFullCalc,tipo:'Faltante'},{arrKey:'sobranteFull',calcArr:calc.sobranteFullCalc,tipo:'Sobrante'}]);
+  setCardOpen('card-dif-playa', calc.faltantePlayaCalc.concat(calc.sobrantePlayaCalc).some(g=>g.valor!==0));
+  setCardOpen('card-dif-full', calc.faltanteFullCalc.concat(calc.sobranteFullCalc).some(g=>g.valor!==0));
   renderResumenFaltantesSobrantes(calc);
   renderAdelantos();
   renderColaboradorNeto(calc);
