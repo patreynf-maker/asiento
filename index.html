@@ -278,7 +278,7 @@ table.xls td.full{background:#fff8ea;}
         <h2>Adelantos</h2>
         <div class="tablewrap"><table class="xls"><thead><tr><th>Concepto</th><th>Monto</th><th>Lugar</th><th>Colaborador</th><th></th></tr></thead><tbody id="tbody-adelantos"></tbody></table></div>
         <div class="small" style="margin-top:6px;">El adelanto se resta de la recaudación de Playa o Full según el lugar elegido, y del sobrante/faltante del colaborador elegido.</div>
-        <div class="btnrow"><button class="btn ghost" onclick="app.addAdelanto()">+ Agregar adelanto</button></div>
+        <div class="btnrow"><button class="btn ghost" id="btn-add-adelanto" onclick="app.addAdelanto()">+ Agregar adelanto</button> <span class="small">(máximo 13, como en la hoja del asiento)</span></div>
       </div>
     </div>
 
@@ -339,16 +339,7 @@ table.xls td.full{background:#fff8ea;}
     </div>
   </div>
   <div class="card">
-    <div class="grid cols2">
-      <div>
-        <h2 style="margin-bottom:8px;">DEBE</h2>
-        <div class="tablewrap" id="resumen-debe"></div>
-      </div>
-      <div>
-        <h2 style="margin-bottom:8px;">HABER</h2>
-        <div class="tablewrap" id="resumen-haber"></div>
-      </div>
-    </div>
+    <div class="tablewrap" id="resumen-grid"></div>
     <div class="grid cols3" style="margin-top:16px;">
       <div><div class="small">Total DEBE</div><div id="r-tot-debe" style="font-size:20px;font-weight:800;padding:8px 0;">$0</div></div>
       <div><div class="small">Total HABER</div><div id="r-tot-haber" style="font-size:20px;font-weight:800;padding:8px 0;">$0</div></div>
@@ -496,7 +487,8 @@ const FULL_TURNO_LABELS = ['Mañana','Tarde','Noche','ST1','ST2','ST3'];
 // Orden fijo de colaboradores para la tabla de sobrantes/faltantes del día.
 const PERSONAL_ORDEN = ['RUIZ','PARADA','LABARTHE','TARDON','ESCOBAR','RODRIGUEZ','HERNANDEZ','SMOULNEAR','ROMANO','HANSEN','CHIANELLI','FAIJOO','PRADO','ALVAREZ'];
 const COMBUSTIBLE_ORDEN = ['naftaSuper','infiniaNafta','diesel500','infiniaDiesel','gnc'];
-const MAX_TIERS = 10;
+const MAX_TIERS = 4;   // la hoja del asiento admite hasta 4 precios por combustible
+const MAX_ADELANTOS = 13; // la hoja del asiento tiene 13 renglones de adelantos
 function tiersOf(c){ return Math.min(MAX_TIERS, Math.max(2, num(c && c.nTiers) || 2)); }
 // litros cargados en los cortes 2..N (lo que se descuenta del corte 1)
 function litrosOtrosCortes(c){ let t=0; for(let i=2;i<=MAX_TIERS;i++) t += num(c['litros'+i]); return t; }
@@ -546,7 +538,6 @@ const HOJA_MANUAL_DEBE = [
   {key:'boxesOtrosCanjes', label:'Otros canjes (BOXES)'},
   {key:'boxesPromo', label:'Promo en Boxes'},
   {key:'faltanteBoxes', label:'Faltante BOXES'},
-  {key:'sobranteBoxesDebe', label:'Sobrante Boxes'},
   {key:'pedidosYaEfectivo', label:'Pedidos YA efectivo'},
 ];
 // Renglones manuales del lado HABER sin fuente de datos propia
@@ -642,6 +633,7 @@ function load(){
     if(merged.asiento.pedidosYaTarjetaFull===undefined) merged.asiento.pedidosYaTarjetaFull = 0;
     if(!Array.isArray(merged.asiento.sobranteFull)) merged.asiento.sobranteFull = [];
     // migración: adelantos anteriores no tenían lugar (playa/full) ni colaborador asociado
+    if(Array.isArray(merged.asiento.adelantos) && merged.asiento.adelantos.length>13) merged.asiento.adelantos = merged.asiento.adelantos.slice(0,13);
     if(Array.isArray(merged.asiento.adelantos)){
       merged.asiento.adelantos.forEach(ad=>{
         if(ad.lugar===undefined) ad.lugar = 'playa';
@@ -688,9 +680,15 @@ function moneyColored(n){
 function moneyInput(n, extraAttrs){
   return `<input readonly style="color:${colorFor(n)};font-weight:700;" value="${money(n)}" ${extraAttrs||''}>`;
 }
+function fmtInputNum(v){ const n = round2(num(v)); return n===0 ? '' : n.toFixed(2).replace('.',','); }
 function manualAmountCell(value, onchangeExpr){
-  return `<input class="manual" type="text" inputmode="decimal" style="text-align:right;" value="${value||''}" onchange="${onchangeExpr}">`;
+  return `<input class="manual" type="text" inputmode="decimal" style="text-align:right;" value="${fmtInputNum(value)}" onchange="${onchangeExpr}">`;
 }
+// número de la hoja: coma decimal, 2 decimales, vacío si es cero (como las celdas vacías de la plantilla)
+function fmtHoja(n){ n = round2(n); return n===0 ? '' : n.toLocaleString('es-AR',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+function fmtHojaColor(n){ const t = fmtHoja(n); return t==='' ? '' : `<span style="color:${colorFor(n)};font-weight:700;">${t}</span>`; }
+// para pegar en Excel (configuración regional es-AR): coma decimal, sin separador de miles
+function fmtCopia(n){ n = round2(n); return n===0 ? '' : n.toFixed(2).replace('.',','); }
 function norm(s){ return String(s||'').trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[.\s_]+/g,''); }
 function escapeHtml(s){ return String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
 function escapeJs(s){ return String(s??'').replace(/\\/g,'\\\\').replace(/'/g,"\\'"); }
@@ -1177,6 +1175,117 @@ function calcular(){
   };
 }
 
+
+/* =====================================================================
+   HOJA "COPIAR AL ASIENTO": réplica EXACTA de la plantilla de Santiago (filas 4 a 98, mismas etiquetas,
+   mismas celdas vacías). No se agregan ni se quitan campos. Lo que excede la plantilla se pliega:
+   ST3 se suma en ST2, FULL ST2/ST3 en FULL ST1, Diferencia de precios en Otros canjes (Playa).
+   ===================================================================== */
+const TPL_A = {"4": "BOXES", "5": "recaudacion full", "6": "Recaudación a Depositar", "7": "Tarjetas de Credito BOXES", "10": "Tarjetas de Credito", "11": "Tarjetas de Credito FULL", "15": "ypf ruta turno mañana", "16": "ypf ruta turno tarde", "17": "ypf ruta turno noche1 ", "18": "ypf ruta ST1", "19": "ypf ruta ST2", "21": "YPF RUTA lubricante", "26": " RUTA Contado Super", "27": " RUTA Contado Infinia", "28": " RUTA Contado Diesel ", "29": " RUTA Contado Infi. Diesel ", "30": " RUTA CONTADO lubri.", "33": "PLAYA", "34": "Cuentas corrientes", "35": "Cuentas corrientes eventuales", "36": "Mercado Pago", "37": "App YPF", "38": "Descuentos App", "39": "Otros canjes", "42": "FULL", "43": "Cuentas corrientes", "44": "Cuentas corrientes eventuales", "45": "Mercado Pago", "46": "App YPF", "47": "Descuentos App", "48": "Otros canjes", "49": "PEDIDOS YA", "52": "BOXES", "53": "Cuentas corrientes", "54": "Cuentas corrientes eventuales", "55": "Mercado Pago", "56": "App YPF", "57": "Descuentos App", "58": "Otros canjes", "59": "Promo en Boxes", "61": "Faltante Playa", "62": "Faltante Playa", "63": "Parada, Ruiz (2398)", "64": "Faltante Playa", "65": "Faltante Playa", "66": "Faltante BOXES", "67": "Faltante Full", "68": "Faltante Full", "69": "Faltante Full", "70": "Faltante Full", "71": "Faltante Full", "72": "Adelantos", "73": "Adelantos", "74": "Adelantos", "75": "Adelantos", "76": "Adelantos", "77": "Adelantos", "78": "Adelantos", "79": "Adelantos", "80": "Adelantos", "81": "Adelantos", "82": "Adelantos", "83": "Adelantos", "84": "Adelantos", "97": "pedidos ya efectivo ", "98": "TOTALES"};
+const TPL_C = {"5": "super", "6": "DIF PRECIOS", "7": "super precio nuevo 2", "8": "super precio nuevo 3", "9": "super precio nuevo 4", "10": "super precio esp/ empresas", "11": "super precio esp/ empresas nuevo ", "12": "super precio esp/ empresas nuevo 2", "13": "super precio esp/ empresas nuevo 3", "14": "super precio esp/ empresas nuevo 4", "15": "super ruta contado", "16": "super ruta  contado precio nuevo ", "17": "super ruta  contado precio nuevo 2", "18": "super ruta  contado precio nuevo 3", "19": "super ruta  contado precio nuevo 4", "20": "infinia ", "21": "DIF PRECIOS", "22": "infinia precio nuevo 2", "23": "infinia precio nuevo 3", "24": "infinia precio nuevo 4", "25": "infinia precio esp/ empresas", "26": "infina precio esp/ empresas nuevo", "27": "infina precio esp/ empresas nuevo 2", "28": "infina precio esp/ empresas nuevo 3", "29": "infina precio esp/ empresas nuevo 4", "30": "infinia ruta contado", "31": "infinia ruta contado precio nuevo", "32": "infina precio contado precio nuevo 2", "33": "infina precio contado precio nuevo 3", "34": "infina precio contado precio nuevo 4", "35": "diesel 500 ", "36": "DIF PRECIOS", "37": "diesel 500 precio nuevo 2", "38": "diesel 500 precio nuevo 3", "39": "diesel 500 precio nuevo 4", "40": "diesel 500 precio esp/ empresas", "41": "diesel 500 precio esp/ empresas nuevo", "42": "diesel 500 precio esp/ empresas nuevo 2", "43": "diesel 500 precio esp/ empresas nuevo 3", "44": "diesel 500 precio esp/ empresas nuevo 4", "45": "diesel 500 ruta contado", "46": "diesel 500 ruta contado precio nuevo", "47": "diesel 500 ruta contado precio nuevo 2", "48": "diesel 500 ruta contado precio nuevo 3", "49": "diesel 500 ruta contado precio nuevo 4", "53": "infinia diesel", "54": "DIF PRECIOS", "55": "infinia diesel precio nuevo 2", "56": "infinia diesel precio nuevo 3", "57": "GNC", "58": "GNC", "59": "infinia diesel esp/empresas nuevo", "60": "infinia diesel esp/empresas nuevo 2", "61": "infinia diesel esp/empresas nuevo 3", "62": "infinia diesel esp/empresas nuevo 4", "63": "infinia diesel ruta contado", "64": "infinia diesel ruta contado precio nuevo", "65": "infinia diesel ruta contado precio nuevo 2", "66": "infinia diesel ruta contado precio nuevo 3", "67": "infinia diesel ruta contado precio nuevo 4", "69": "Lubricantes playa", "70": "Filtros", "71": "Interese tarjetas", "72": "yerbera-4000 ptos", "73": "yerbera-2000ptos+1000", "74": "yerbera-100 ptos+3000", "75": "lona-7000pts", "76": "lona-5000ptos+4500", "77": "lona-100pts+6500", "78": "reposera-8000pts", "79": "reposera-6000pts+5500", "80": "reposera-100pts+7500", "81": "Tardon, Hernandez, Hansen (2396)", "82": "Labarthe, Hansen, Escobar, Ruiz (2397)", "83": "Sobrante Playa", "84": "Sobrante Playa", "85": "Sobrante Playa", "86": "Sobrante Boxes", "87": "mate-3500pts", "88": "mate-1500pts+900", "89": "mate-100pts+1500", "90": "reposera x pos sc", "91": "FULL MAÑANA", "92": "FULL TARDE", "93": "FULL NOCHE ", "94": "FULL ST1", "95": "lunchera x $1500", "96": "Ingresos por cheques", "97": "Ingresos efectivos", "98": "TOTALES"};
+function titleCase(str){ return String(str||'').toLowerCase().replace(/(^|[\s,])([a-zñáéíóú])/g,(m,a,b)=>a+b.toUpperCase()); }
+function labelDif(g, base, i, porDefecto){
+  const nombres = (g.asignados||[]).map(p=> titleCase(p.nombre));
+  if(!nombres.length) return porDefecto;
+  const planilla = (base!==null && base!==undefined && base!=='') ? ` (${num(base)+i})` : '';
+  return nombres.join(', ') + planilla;
+}
+// Filas HABER de combustible: [fila inicial, clave, cantidad de "extras" de la plantilla]
+const HOJA_FILAS_COMB = {naftaSuper:5, infiniaNafta:20, diesel500:35, infiniaDiesel:53};
+function buildHoja(c){
+  const a = state.asiento;
+  const D = {}, H = {};   // por número de fila de la plantilla
+  const dC = (r,val,extra)=>{ D[r] = Object.assign({label:TPL_A[r], val:round2(val)}, extra||{}); };
+  const dM = (r,key)=>{ D[r] = {label:TPL_A[r], hoja:key, val:hojaVal(key)}; };
+  const dH = (r)=>{ D[r] = {label:TPL_A[r], header:true}; };
+  // La plantilla llega hasta ST2: lo de ST3 se suma en ST2.
+  const plegar = (arr, n)=>{ const out = Array.from({length:n},(_,i)=> arr[i]||0); for(let i=n;i<arr.length;i++) out[n-1] += arr[i]||0; return out; };
+  const tarjP = plegar(c.tarjetasPlayaPorTurno,5);
+  const tarjF = plegar(c.tarjetasFullPorTurno,5);
+  const rutaP = plegar(c.rutaPorTurno,5);
+  const gPlegado = (arr)=>{ // grupo ST2 = ST2 + ST3 (valor y, si ST2 no tiene colaboradores, los de ST3)
+    const out = arr.slice(0,5).map(g=> g ? Object.assign({}, g) : null);
+    for(let i=5;i<arr.length;i++){ const g=arr[i]; if(!g||g.valor===0) continue;
+      if(!out[4]) out[4] = Object.assign({}, g, {valor:0});
+      if(out[4].valor===0 && !(out[4].asignados||[]).length) out[4].asignados = g.asignados;
+      out[4].valor = round2(out[4].valor + g.valor);
+    }
+    return out;
+  };
+  const faltPlaya = gPlegado(c.faltantePlayaCalc), faltFull = gPlegado(c.faltanteFullCalc), sobPlaya = gPlegado(c.sobrantePlayaCalc);
+  const tarjPlayaT = round2(tarjP.reduce((t,x)=>t+x,0));
+  const tarjFullT = round2(tarjF.reduce((t,x)=>t+x,0) + num(a.pedidosYaTarjetaFull));
+  const tarjBoxesT = round2(num(a.tarjBoxesTurno1)+num(a.tarjBoxesTurno2));
+  dM(4,'boxes4'); dC(5,c.recaudacionFull); dC(6,c.recaudacionPlaya); dC(7,tarjBoxesT);
+  dC(10,tarjPlayaT); dC(11,tarjFullT);
+  for(let i=0;i<5;i++) dC(15+i, rutaP[i]);
+  dM(21,'ypfRutaLubricante');
+  ['rutaContadoSuper','rutaContadoInfinia','rutaContadoDiesel','rutaContadoInfiDiesel','rutaContadoLubri'].forEach((k,i)=> dM(26+i,k));
+  dH(33); dC(34,c.ctaCtePlaya); dM(35,'ctaCteEventualPlaya'); dC(36,c.mpPlaya); dC(37,c.appYpfPlaya); dC(38,c.dtoAppPlaya); dC(39,num(a.otrosCanjesPlaya)+num(a.difPrecios));
+  dH(42); dC(43,c.ctaCteFull); dM(44,'ctaCteEventualFull'); dC(45,c.mpFull); dC(46,c.appYpfFull); dC(47,c.dtoAppFull); dC(48,a.otrosCanjesFull); dC(49,c.pedidosYa);
+  dH(52); dM(53,'boxesCtaCte'); dM(54,'boxesCtaCteEventual'); dM(55,'boxesMp'); dM(56,'boxesAppYpf'); dM(57,'boxesDescApp'); dM(58,'boxesOtrosCanjes'); dM(59,'boxesPromo');
+  for(let i=0;i<5;i++){
+    const g = faltPlaya[i];
+    dC(61+i, g? g.valor*-1 : 0, {label: g && g.valor!==0 ? labelDif(g,a.playaBase,i,'Faltante Playa') : 'Faltante Playa', tag:'dif'});
+  }
+  dM(66,'faltanteBoxes'); D[66].tag='dif';
+  for(let i=0;i<5;i++){
+    const g = faltFull[i];
+    dC(67+i, g? g.valor*-1 : 0, {label: g && g.valor!==0 ? labelDif(g,a.fullBase,i,'Faltante Full') : 'Faltante Full', tag:'dif'});
+  }
+  const ads = a.adelantos.filter(x=> num(x.monto)!==0);
+  for(let i=0;i<13;i++) dC(72+i, ads[i] ? num(ads[i].monto) : 0, {tag:'dif'});
+  dM(97,'pedidosYaEfectivo');
+
+  // ---- HABER ----
+  const fila = (r, key, tier, extraIdx)=>{
+    const cIn = a.combustibles[key], cc = c.combustibles[key];
+    if(extraIdx!==undefined){
+      const ex = cIn.extra[extraIdx];
+      H[r] = {label:TPL_C[r], ml:num(ex.litros), precio:num(ex.precio), val:round2(num(ex.litros)*num(ex.precio)), extraKey:key, extraIdx};
+    } else {
+      H[r] = {label:TPL_C[r], ml:num(cIn['litros'+tier]), precio:num(cIn['precio'+tier]), val: tier<=cc.nT ? cc.fs[tier] : 0};
+    }
+  };
+  ['naftaSuper','infiniaNafta','diesel500'].forEach(key=>{
+    const r0 = HOJA_FILAS_COMB[key];
+    fila(r0,key,1); fila(r0+1,key,2); fila(r0+2,key,3);
+    COMBUSTIBLE_EXTRA_LABELS[key].forEach((_,i)=> fila(r0+3+i,key,null,i));
+  });
+  fila(53,'infiniaDiesel',1); fila(54,'infiniaDiesel',2); fila(55,'infiniaDiesel',3); fila(56,'infiniaDiesel',null,0);
+  fila(57,'gnc',1); fila(58,'gnc',2);
+  for(let i=1;i<=9;i++) fila(58+i,'infiniaDiesel',null,i);
+  H[69] = {label:TPL_C[69], val:round2(c.lubricantesPlaya)};
+  H[70] = {label:TPL_C[70], hoja:'filtros', val:hojaVal('filtros')};
+  H[71] = {label:TPL_C[71], hoja:'intereseTarjetas', val:hojaVal('intereseTarjetas')};
+  const canj = (r,key)=>{ const cj = CANJES_PUNTOS.find(x=>x.key===key); const cant = canjeVal(key); H[r] = {label:TPL_C[r], ml:cant, precio:cj.precio, val:round2(cant*cj.precio), canjeKey:key}; };
+  ['yerbera1','yerbera2','yerbera3','lona1','lona2','lona3','reposera1','reposera2','reposera3'].forEach((k,i)=> canj(72+i,k));
+  for(let i=0;i<5;i++){
+    const g = sobPlaya[i];
+    H[81+i] = {label: g && g.valor!==0 ? labelDif(g,a.playaBase,i,'Sobrante Playa') : TPL_C[81+i], val: g? round2(g.valor):0, tag:'sob'};
+  }
+  H[86] = {label:TPL_C[86], hoja:'sobranteBoxesHaber', val:hojaVal('sobranteBoxesHaber'), tag:'sob'};
+  ['mate1','mate2','mate3','reposeraPosSc'].forEach((k,i)=> canj(87+i,k));
+  for(let i=0;i<4;i++){ let v = c.fullPorTurno[i] ? c.fullPorTurno[i].monto : 0; if(i===3) for(let k=4;k<c.fullPorTurno.length;k++) v += c.fullPorTurno[k].monto; H[91+i] = {label:TPL_C[91+i], val: round2(v)}; }
+  canj(95,'lunchera');
+  H[96] = {label:TPL_C[96], hoja:'ingresosCheques', val:hojaVal('ingresosCheques')};
+  H[97] = {label:TPL_C[97], hoja:'ingresosEfectivos', val:hojaVal('ingresosEfectivos')};
+
+  const rows = [];
+  for(let r=4;r<=97;r++) rows.push({r, d:D[r]||null, h:H[r]||null});
+  const sum = o=> Object.values(o).reduce((t,x)=> t+(x.val||0),0);
+  const totalDebe = round2(sum(D)), totalHaber = round2(sum(H));
+  // RESULTANTE SOB/FALT. (G68:G71 de la plantilla): G69 = SUM(B61:B96), G70 = SUM(F81:F86), G71 = G69-G70
+  let g69=0; for(let r=61;r<=96;r++) if(D[r]) g69+=D[r].val||0;
+  let g70=0; for(let r=81;r<=86;r++) if(H[r]) g70+=H[r].val||0;
+  const resultante = {g69:round2(g69), g70:round2(g70), g71:round2(g69-g70)};
+  const tarjetas = {
+    playa: tarjP, full: tarjF, totalPlaya: tarjPlayaT, pedidosYa: num(a.pedidosYaTarjetaFull), totalFull: tarjFullT,
+    boxes1: num(a.tarjBoxesTurno1), boxes2: num(a.tarjBoxesTurno2), totalBoxes: tarjBoxesT,
+  };
+  return {rows, totalDebe, totalHaber, diferenciaHoja: round2(totalDebe-totalHaber), resultante, tarjetas};
+}
+// Campos que la app calcula pero que la plantilla de Excel NO tiene (no se muestran en la tabla).
 /* =====================================================================
    RENDER
    ===================================================================== */
@@ -1187,7 +1296,7 @@ function renderCombustiblesTabla(){
   const calc = calcular();
 
   // --- tabla manual (izquierda): estilo planilla original, agrupado por producto y corte de precio ---
-  let manualHtml = '<table class="xls combustible-table"><thead><tr><th>Combustible</th><th>M/L</th><th>Precio</th></tr></thead><tbody>';
+  let manualHtml = '<table class="xls combustible-table"><thead><tr><th>Combustible</th><th>Precio</th><th>M/L</th></tr></thead><tbody>';
   COMBUSTIBLE_ORDEN.forEach(key=>{
     const c = a.combustibles[key];
     const color = COMBUSTIBLE_COLOR[key];
@@ -1200,8 +1309,8 @@ function renderCombustiblesTabla(){
         : `<input class="manual" type="text" inputmode="decimal" data-nav-key="comb-${key}-${litrosField}" value="${litrosVal}" onchange="app.setCombustible('${key}','${litrosField}', this.value)">`;
       manualHtml += `<tr>
         <td style="background:${color};font-weight:700;">${c.label} P${tier}</td>
-        <td style="background:${color};">${litrosInput}</td>
         <td style="background:${color};"><input class="manual" type="text" inputmode="decimal" data-nav-key="comb-${key}-${precioField}" value="${precioVal}" onchange="app.setCombustible('${key}','${precioField}', this.value)"></td>
+        <td style="background:${color};">${litrosInput}</td>
       </tr>`;
     });
     manualHtml += `<tr><td colspan="3" style="background:${color};opacity:.85;padding:3px 6px;">
@@ -1441,10 +1550,11 @@ function renderLista(tbodyId, arr, fields, editFn, removeFn){
       <td><button class="btn danger" onclick="app.${removeFn}(${i})">✕</button></td>
     </tr>`).join('');
 }
-function addAdelanto(){ state.asiento.adelantos.push({concepto:'', monto:0, lugar:'playa', colaborador:''}); save(); renderAll(); }
+function addAdelanto(){ if(state.asiento.adelantos.length>=MAX_ADELANTOS) return; state.asiento.adelantos.push({concepto:'', monto:0, lugar:'playa', colaborador:''}); save(); renderAll(); }
 function removeAdelanto(i){ state.asiento.adelantos.splice(i,1); save(); renderAll(); }
 function editAdelanto(i, field, val){ state.asiento.adelantos[i][field] = field==='monto'?num(val):val; save(); renderAll(); }
 function renderAdelantos(){
+  { const bt=document.getElementById('btn-add-adelanto'); if(bt) bt.disabled = state.asiento.adelantos.length>=MAX_ADELANTOS; }
   const arr = state.asiento.adelantos;
   const tbody = document.getElementById('tbody-adelantos');
   if(!arr.length){ tbody.innerHTML = '<tr><td colspan="5" class="small">Sin adelantos cargados.</td></tr>'; return; }
@@ -1521,36 +1631,39 @@ function renderRecaudacionYTarjetas(){
 
 function renderResumen(){
   const c = calcular();
-  let debeHtml = '<table class="xls"><tbody>';
-  c.debeItems.forEach(x=>{
-    const celda = x.hojaKey
-      ? manualAmountCell(state.asiento.hoja[x.hojaKey], `app.setHoja('${x.hojaKey}', this.value)`)
-      : moneyColored(x.monto);
-    debeHtml += `<tr><td class="label">${escapeHtml(x.concepto)}</td><td>${celda}</td></tr>`;
-  });
-  debeHtml += `<tr class="total"><td>TOTAL DEBE</td><td>${moneyColored(c.totalDebe)}</td></tr></tbody></table>`;
-  document.getElementById('resumen-debe').innerHTML = debeHtml;
-
-  let haberHtml = '<table class="xls"><thead><tr><th>Concepto</th><th>M/L</th><th>Precio</th><th>Importe</th></tr></thead><tbody>';
-  c.haberItems.forEach(x=>{
-    let ml, precio;
-    if(x.extraKey){
-      ml = manualAmountCell(state.asiento.combustibles[x.extraKey].extra[x.extraIdx].litros, `app.setExtra('${x.extraKey}',${x.extraIdx},'litros', this.value)`);
-      precio = manualAmountCell(state.asiento.combustibles[x.extraKey].extra[x.extraIdx].precio, `app.setExtra('${x.extraKey}',${x.extraIdx},'precio', this.value)`);
-    } else if(x.canjeKey){
-      ml = manualAmountCell(state.asiento.canjes[x.canjeKey], `app.setCanje('${x.canjeKey}', this.value)`);
-      precio = moneyColored(x.precio);
-    } else {
-      ml = x.litros!==undefined ? round2(x.litros).toLocaleString('es-AR',{minimumFractionDigits:2,maximumFractionDigits:2}) : '—';
-      precio = (x.precio!==undefined && x.precio!==null) ? moneyColored(x.precio) : '—';
+  const h = buildHoja(c);
+  const G = {68:'RESULTANTE SOB/FALT.', 69:h.resultante.g69, 70:h.resultante.g70, 71:h.resultante.g71};
+  let g = '<table class="xls hoja-grid"><thead><tr><th>DEBE</th><th></th><th>HABER</th><th>M/L</th><th>Precio</th><th></th><th></th></tr></thead><tbody>';
+  g += `<tr><td class="label">QQN554 S.A.</td><td>${fmtHojaColor(h.diferenciaHoja)}</td><td></td><td></td><td></td><td></td><td></td></tr>`;
+  h.rows.forEach(row=>{
+    const d = row.d, hb = row.h;
+    let dl='', dv='';
+    if(d){
+      dl = escapeHtml(d.label);
+      dv = d.header ? '' : (d.hoja ? manualAmountCell(state.asiento.hoja[d.hoja], `app.setHoja('${d.hoja}', this.value)`) : fmtHojaColor(d.val));
     }
-    const importe = x.hojaKey
-      ? manualAmountCell(state.asiento.hoja[x.hojaKey], `app.setHoja('${x.hojaKey}', this.value)`)
-      : moneyColored(x.monto);
-    haberHtml += `<tr><td class="label">${escapeHtml(x.concepto)}</td><td>${ml}</td><td>${precio}</td><td>${importe}</td></tr>`;
+    let hl='', ml='', pr='', hv='';
+    if(hb){
+      hl = escapeHtml(hb.label);
+      if(hb.extraKey){
+        const ex = state.asiento.combustibles[hb.extraKey].extra[hb.extraIdx];
+        ml = manualAmountCell(ex.litros, `app.setExtra('${hb.extraKey}',${hb.extraIdx},'litros', this.value)`);
+        pr = manualAmountCell(ex.precio, `app.setExtra('${hb.extraKey}',${hb.extraIdx},'precio', this.value)`);
+      } else if(hb.canjeKey){
+        ml = manualAmountCell(state.asiento.canjes[hb.canjeKey], `app.setCanje('${hb.canjeKey}', this.value)`);
+        pr = fmtHoja(hb.precio);
+      } else if(hb.ml!==undefined){
+        ml = fmtHoja(hb.ml); pr = fmtHoja(hb.precio);
+      }
+      hv = hb.hoja ? manualAmountCell(state.asiento.hoja[hb.hoja], `app.setHoja('${hb.hoja}', this.value)`) : fmtHojaColor(hb.val);
+    }
+    const gv = G[row.r]===undefined ? '' : (typeof G[row.r]==='string' ? `<b>${G[row.r]}</b>` : fmtHojaColor(G[row.r]));
+    const hdr = d && d.header ? ' style="font-weight:800;"' : '';
+    g += `<tr><td class="label"${hdr}>${dl}</td><td>${dv}</td><td class="label">${hl}</td><td>${ml}</td><td>${pr}</td><td>${hv}</td><td>${gv}</td></tr>`;
   });
-  haberHtml += `<tr class="total"><td>TOTAL HABER</td><td></td><td></td><td>${moneyColored(c.totalHaber)}</td></tr></tbody></table>`;
-  document.getElementById('resumen-haber').innerHTML = haberHtml;
+  g += `<tr class="total"><td>TOTALES</td><td>${moneyColored(h.totalDebe)}</td><td>TOTALES</td><td></td><td></td><td>${moneyColored(h.totalHaber)}</td><td></td></tr></tbody></table>`;
+  document.getElementById('resumen-grid').innerHTML = g;
+
 
   document.getElementById('r-tot-debe').innerHTML = moneyColored(c.totalDebe);
   document.getElementById('r-tot-haber').innerHTML = moneyColored(c.totalHaber);
@@ -1558,24 +1671,19 @@ function renderResumen(){
   diffEl.textContent = money(c.diferencia);
   diffEl.className = 'diff-box ' + (Math.abs(c.diferencia)<0.01 ? 'ok':'bad');
 
-  let tarj = '<table class="xls"><thead><tr><th>Turno</th><th>Playa</th><th>Full</th></tr></thead><tbody>';
-  const maxTurnos = Math.max(state.asiento.turnosPlaya, state.asiento.turnosFull);
-  for(let i=0;i<maxTurnos;i++){
-    const label = i<PLAYA_TURNO_LABELS.length ? PLAYA_TURNO_LABELS[i] : FULL_TURNO_LABELS[i];
-    const playaVal = i<state.asiento.turnosPlaya ? moneyColored(c.tarjetasPlayaPorTurno[i]||0) : '—';
-    const fullVal = i<state.asiento.turnosFull ? moneyColored(c.tarjetasFullPorTurno[i]||0) : '—';
-    tarj += `<tr><td class="label">${label}</td><td class="playa">${playaVal}</td><td class="full">${fullVal}</td></tr>`;
-  }
-  tarj += `<tr><td class="label">Pedidos YA (tarjeta)</td><td class="playa">—</td><td class="full">${manualAmountCell(state.asiento.pedidosYaTarjetaFull, "app.setNum('asiento.pedidosYaTarjetaFull', this.value)")}</td></tr>`;
-  const tarjFullTotalConPedidos = round2(c.tarjetasFullTotal + num(state.asiento.pedidosYaTarjetaFull));
-  tarj += `<tr class="total"><td>TOTAL</td><td>${moneyColored(c.tarjetasPlayaTotal)}</td><td>${moneyColored(tarjFullTotalConPedidos)}</td></tr></tbody></table>`;
+  const T = h.tarjetas;
+  let tarj = '<table class="xls"><thead><tr><th></th><th>Tarjetas playa</th><th>Tarjetas Full</th></tr></thead><tbody>';
+  ['Turno mañana','Turno tarde','Tuno noche 1','ST1','ST2'].forEach((label,i)=>{
+    tarj += `<tr><td class="label">${label}</td><td class="playa">${i<state.asiento.turnosPlaya ? fmtHojaColor(T.playa[i]) : ''}</td><td class="full">${i<state.asiento.turnosFull ? fmtHojaColor(T.full[i]) : ''}</td></tr>`;
+  });
+  tarj += `<tr><td class="label">PEDIDOS YA</td><td class="playa"></td><td class="full">${manualAmountCell(state.asiento.pedidosYaTarjetaFull, "app.setNum('asiento.pedidosYaTarjetaFull', this.value)")}</td></tr>`;
+  tarj += `<tr class="total"><td>TOTAL</td><td>${moneyColored(T.totalPlaya)}</td><td>${moneyColored(T.totalFull)}</td></tr></tbody></table>`;
   document.getElementById('resumen-tarjetas').innerHTML = tarj;
 
-  let tarjBoxes = '<table class="xls"><thead><tr><th>Turno</th><th>Importe</th></tr></thead><tbody>';
+  let tarjBoxes = '<table class="xls"><thead><tr><th></th><th>Tarjetas Boxes</th></tr></thead><tbody>';
   tarjBoxes += `<tr><td class="label">Turno 1</td><td>${manualAmountCell(state.asiento.tarjBoxesTurno1, "app.setNum('asiento.tarjBoxesTurno1', this.value)")}</td></tr>`;
   tarjBoxes += `<tr><td class="label">Turno 2</td><td>${manualAmountCell(state.asiento.tarjBoxesTurno2, "app.setNum('asiento.tarjBoxesTurno2', this.value)")}</td></tr>`;
-  const tarjBoxesTotal = round2(num(state.asiento.tarjBoxesTurno1) + num(state.asiento.tarjBoxesTurno2));
-  tarjBoxes += `<tr class="total"><td>TOTAL</td><td>${moneyColored(tarjBoxesTotal)}</td></tr></tbody></table>`;
+  tarjBoxes += `<tr class="total"><td>TOTAL</td><td>${moneyColored(T.totalBoxes)}</td></tr></tbody></table>`;
   document.getElementById('resumen-tarjetas-boxes').innerHTML = tarjBoxes;
 }
 
@@ -1619,18 +1727,34 @@ function renderAll(){
 /* =====================================================================
    EXPORTAR / COPIAR / RESET
    ===================================================================== */
+function hojaFilas(c){
+  const h = buildHoja(c);
+  const G = {68:'RESULTANTE SOB/FALT.', 69:h.resultante.g69, 70:h.resultante.g70, 71:h.resultante.g71};
+  const filas = [['QQN554 S.A.'],['', fmtCopia(h.diferenciaHoja)],['DEBE','','HABER','M/L','Precio','Importe']];
+  h.rows.forEach(({r,d,h:hb})=>{
+    const f = ['','','','','','',''];
+    if(d){ f[0]=d.label; f[1]= d.header ? '' : fmtCopia(d.val); }
+    if(hb){
+      f[2]=hb.label;
+      if(hb.ml!==undefined){ f[3]=fmtCopia(hb.ml); f[4]=fmtCopia(hb.precio); }
+      f[5]=fmtCopia(hb.val);
+    }
+    if(G[r]!==undefined) f[6] = typeof G[r]==='string' ? G[r] : fmtCopia(G[r]);
+    filas.push(f);
+  });
+  filas.push(['TOTALES',fmtCopia(h.totalDebe),'TOTALES','','',fmtCopia(h.totalHaber)]);
+  const T = h.tarjetas;
+  filas.push([],['','','Tarjetas playa','Tarjetas Full']);
+  ['Turno mañana','Turno tarde','Tuno noche 1','ST1','ST2'].forEach((l,i)=> filas.push(['',l,fmtCopia(T.playa[i]),fmtCopia(T.full[i])]));
+  filas.push(['','PEDIDOS YA','',fmtCopia(T.pedidosYa)]);
+  filas.push(['','TOTAL',fmtCopia(T.totalPlaya),fmtCopia(T.totalFull)]);
+  filas.push([],['','','Tarjetas Boxes']);
+  filas.push(['','Turno 1',fmtCopia(T.boxes1)],['','Turno 2',fmtCopia(T.boxes2)],['','TOTAL',fmtCopia(T.totalBoxes)]);
+  return filas;
+}
 function copiarResumen(){
   const c = calcular();
-  let text = 'QQN554 S.A.\nDEBE\t\tHABER\tM/L\tPrecio\tImporte\n';
-  const max = Math.max(c.debeItems.length, c.haberItems.length);
-  for(let i=0;i<max;i++){
-    const d = c.debeItems[i] || {concepto:'',monto:''};
-    const h = c.haberItems[i] || {concepto:'',monto:''};
-    const hLitros = h.litros!==undefined ? h.litros : '';
-    const hPrecio = (h.precio!==undefined && h.precio!==null) ? h.precio : '';
-    text += `${d.concepto}\t${d.monto!==''?d.monto:''}\t${h.concepto}\t${hLitros}\t${hPrecio}\t${h.monto!==''?h.monto:''}\n`;
-  }
-  text += `TOTAL\t${c.totalDebe}\tTOTAL\t\t\t${c.totalHaber}\nDIFERENCIA\t\t\t\t\t${c.diferencia}\n`;
+  const text = hojaFilas(c).map(f=> f.join('\t')).join('\n') + '\n';
   if(!navigator.clipboard || !navigator.clipboard.writeText){
     alert('Este navegador no permite copiar automáticamente. Descargá el .csv en su lugar.');
     return;
@@ -1641,12 +1765,9 @@ function copiarResumen(){
 }
 function descargarCSV(){
   const c = calcular();
-  let csv = 'Concepto,Monto\nDEBE,\n';
-  c.debeItems.forEach(x=> csv += `"${x.concepto}",${x.monto}\n`);
-  csv += `TOTAL DEBE,${c.totalDebe}\n\nConcepto,M/L,Precio,Importe\nHABER,,,\n`;
-  c.haberItems.forEach(x=> csv += `"${x.concepto}",${x.litros!==undefined?x.litros:''},${(x.precio!==undefined&&x.precio!==null)?x.precio:''},${x.monto}\n`);
-  csv += `TOTAL HABER,,,${c.totalHaber}\n\nDIFERENCIA,,,${c.diferencia}\n`;
-  const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
+  // separador ";" y coma decimal, para abrir directo en Excel en español
+  const csv = hojaFilas(c).map(f=> f.map(x=> '"'+String(x).replace(/"/g,'""')+'"').join(';')).join('\r\n') + '\r\n';
+  const blob = new Blob(['\ufeff'+csv], {type:'text/csv;charset=utf-8;'});
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
   link.href = url; link.download = `asiento_${state.asiento.fechaPeya||'dia'}.csv`;
