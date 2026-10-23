@@ -128,7 +128,7 @@ table.xls td.full{background:#fff8ea;}
 <div id="modal-nuevo-dia" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9999;align-items:center;justify-content:center;padding:16px;">
   <div style="background:#fff;border-radius:12px;padding:22px;max-width:440px;width:100%;box-shadow:0 10px 40px rgba(0,0,0,.3);">
     <h2 style="margin:0 0 10px;font-size:18px;">🔄 Nuevo día</h2>
-    <p style="margin:0 0 16px;font-size:14px;line-height:1.4;">Se borran los archivos cargados, los faltantes/sobrantes asignados, los adelantos y todos los campos manuales del día. Se conservan los precios, los N° de planilla base, los turnos activos y la lista de personal.</p>
+    <p style="margin:0 0 16px;font-size:14px;line-height:1.4;">Se borran los archivos cargados, los faltantes/sobrantes asignados, los adelantos y todos los campos manuales del día. El N° de planilla inicial pasa al que sigue (Playa y Full), los turnos vuelven a 4 en Playa y 3 en Full, el último precio de cada combustible pasa a P1 y se conserva la lista de personal.</p>
     <div id="modal-nuevo-dia-error" style="color:#c92a2a;font-size:13px;margin-bottom:10px;"></div>
     <div style="display:flex;gap:10px;justify-content:flex-end;">
       <button class="btn ghost" onclick="app.cancelarNuevoDia()">Cancelar</button>
@@ -1337,7 +1337,8 @@ function renderCombustiblesTabla(){
 function renderPersonalPool(){
   const el = document.getElementById('personal-pool');
   if(!state.personal.length){ el.innerHTML = '<span class="small">Todavía no cargaste una lista de personal. Subí un Excel con los nombres (una columna) o agregalos con el campo de abajo.</span>'; return; }
-  el.innerHTML = state.personal.map(n=>
+  const ordenados = state.personal.slice().sort((x,y)=> String(x).localeCompare(String(y),'es',{sensitivity:'base'}));
+  el.innerHTML = ordenados.map(n=>
     `<span class="chip-name" draggable="true" data-nombre="${escapeHtml(n)}" ondragstart="app.dragStartPersonal(event)">${escapeHtml(n)}</span>`
   ).join('');
 }
@@ -1810,16 +1811,20 @@ function confirmarNuevoDia(){
     const precios = {};
     for(const key in a.combustibles){
       const c = a.combustibles[key] || {};
-      precios[key] = {nTiers: tiersOf(c)};
-      for(let t=1;t<=MAX_TIERS;t++){ if(c['precio'+t]!==undefined) precios[key]['precio'+t] = num(c['precio'+t]); }
+      // el último precio vigente del día pasa a P1; P2, P3… se vacían (precios y litros) y vuelven a 2 cortes
+      let ultimo = 0;
+      for(let t=tiersOf(c);t>=1;t--){ if(num(c['precio'+t])){ ultimo = num(c['precio'+t]); break; } }
+      precios[key] = {nTiers: 2, precio1: ultimo};
     }
     const nuevo = def;
     nuevo.personal = personal;
     for(const key in nuevo.asiento.combustibles) Object.assign(nuevo.asiento.combustibles[key], precios[key]||{});
-    nuevo.asiento.playaBase = a.playaBase;
-    nuevo.asiento.fullBase = a.fullBase;
-    nuevo.asiento.turnosPlaya = a.turnosPlaya;
-    nuevo.asiento.turnosFull = a.turnosFull;
+    // N° de planilla inicial = el que sigue a la última planilla del día anterior (ej.: ST1 + 1); turnos por defecto: 4 playa, 3 full
+    const sig = (base, n)=> (base===null || base===undefined || base==='') ? base : num(base) + num(n);
+    nuevo.asiento.playaBase = sig(a.playaBase, a.turnosPlaya);
+    nuevo.asiento.fullBase = sig(a.fullBase, a.turnosFull);
+    nuevo.asiento.turnosPlaya = 4;
+    nuevo.asiento.turnosFull = 3;
     state = nuevo;
     syncGroups();
     state.asiento.fechaPeya = new Date(Date.now()-86400000).toISOString().slice(0,10);
