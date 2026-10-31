@@ -92,6 +92,10 @@ footer{text-align:center;font-size:11px;color:#9aa4ab;padding:20px;}
 table.xls{border-collapse:collapse;width:100%;font-size:12px;}
 table.xls th, table.xls td{border:1px solid var(--cell-border);padding:5px 7px;text-align:right;}
 table.xls th{background:#e8ecf0;color:#33424f;font-weight:700;text-align:center;font-size:11px;text-transform:uppercase;letter-spacing:.02em;}
+table.xls.centrada{width:100%;min-width:700px;}
+table.xls.centrada th, table.xls.centrada td, table.xls.centrada td.label{text-align:center;}
+table.xls.centrada th{white-space:nowrap;}
+table.xls.centrada h3{text-align:center;}
 table.xls td.label{text-align:left;font-weight:600;background:#f6f8fa;}
 table.xls td.section{background:var(--ypf-blue);color:#fff;font-weight:700;text-align:left;}
 table.xls input{border:none;background:transparent;width:100%;text-align:right;padding:2px;font-size:12px;}
@@ -321,7 +325,14 @@ table.xls td.full{background:#fff8ea;}
       </div>
 
       <div class="card">
+        <h2>Litros vendidos</h2>
+        <div class="btnrow" style="margin:0 0 8px;"><button class="btn ghost" onclick="app.copiarLitros()">📋 Copiar solo los litros (para Excel)</button></div>
+        <div class="tablewrap" id="resumen-litros"></div>
+      </div>
+
+      <div class="card">
         <h2>Sobrantes / Faltantes por colaborador</h2>
+        <div class="btnrow" style="margin:0 0 8px;"><button class="btn ghost" onclick="app.copiarColaboradores()">📋 Copiar solo los importes (para Excel)</button></div>
         <div class="tablewrap" id="resumen-colaboradores"></div>
       </div>
     </div>
@@ -1487,11 +1498,12 @@ function renderResumenFaltantesSobrantes(calc){
   mk(calc.sobranteFullCalc, 'Sobrante', a.fullBase, full);
   [playa, full].forEach(rows=> rows.sort((x,y)=> x.planilla - y.planilla)); // siempre por N° de planilla (turno)
 
+  const fechaCorta = (a.fechaPeya||'').split('-').reverse().join('/');
   const TIPO_SUF = {medio:' (medio)', cuarto:' (cuarto)'};
   function tabla(titulo, clase, rows){
-    let html = `<h3 class="${clase}" style="font-size:13px;margin:10px 0 6px;">${titulo}</h3>`;
+    let html = `<h3 class="${clase}" style="font-size:13px;margin:10px 0 6px;text-align:center;">${titulo} · ${fechaCorta}</h3>`;
     if(!rows.length) return '';
-    html += '<table class="xls"><thead><tr><th>Tipo</th><th>Turno</th><th>N° Planilla</th><th>Colaboradores</th><th>Monto</th></tr></thead><tbody>';
+    html += '<table class="xls centrada"><thead><tr><th>Tipo</th><th>Turno</th><th>N° Planilla</th><th>Colaboradores</th><th>Monto</th></tr></thead><tbody>';
     rows.forEach(r=>{
       const colabText = (r.colaboradores && r.colaboradores.length)
         ? r.colaboradores.map(p=> escapeHtml(p.nombre) + (TIPO_SUF[p.tipo]||'')).join(', ')
@@ -1503,6 +1515,14 @@ function renderResumenFaltantesSobrantes(calc){
     return html;
   }
   const htmlResumen = (playa.length ? tabla('Playa','playa',playa) : '') + (full.length ? tabla('Full / Shop','full',full) : '');
+  // litros vendidos por combustible (suma de todos los cortes de precio)
+  let lt = '<table class="xls centrada"><thead><tr><th>Combustible</th><th>Litros</th></tr></thead><tbody>';
+  COMBUSTIBLE_ORDEN.forEach(k=>{
+    const litros = calc.combustibles[k].litrosSum;
+    lt += `<tr><td class="label">${escapeHtml(state.asiento.combustibles[k].label)}</td><td>${round2(litros).toLocaleString('es-AR',{minimumFractionDigits:2,maximumFractionDigits:2})}</td></tr>`;
+  });
+  lt += '</tbody></table>';
+  document.getElementById('resumen-litros').innerHTML = lt;
   document.getElementById('resumen-faltantes-sobrantes').innerHTML = htmlResumen || '<div class="small">No hay faltantes ni sobrantes cargados por ahora.</div>';
 }
 function setCombustible(key, field, val){
@@ -1576,10 +1596,34 @@ function renderAdelantos(){
     </tr>`;
   }).join('');
 }
+function copiarLitros(){
+  const c = calcular();
+  // solo los litros, uno por renglón, en el orden de la tabla, con coma decimal (se pegan como número en Excel es-AR)
+  const text = COMBUSTIBLE_ORDEN.map(k=> round2(c.combustibles[k].litrosSum).toFixed(2).replace('.',',')).join('\n');
+  const ok = ()=> alert('Copiado: ' + COMBUSTIBLE_ORDEN.length + ' valores de litros, en el orden de la tabla.');
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(text).then(ok).catch(()=> fallbackCopiar(text, ok));
+  } else fallbackCopiar(text, ok);
+}
+function copiarColaboradores(){
+  const c = calcular();
+  // solo los importes, uno por renglón en el orden de la tabla, con coma decimal (se pegan como número en Excel es-AR)
+  const text = c.colaboradorNeto.map(p=> round2(p.monto).toFixed(2).replace('.',',')).join('\n');
+  const ok = ()=> alert('Copiado: ' + c.colaboradorNeto.length + ' importes, en el orden de la tabla.');
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(text).then(ok).catch(()=> fallbackCopiar(text, ok));
+  } else fallbackCopiar(text, ok);
+}
+function fallbackCopiar(text, ok){
+  const ta = document.createElement('textarea'); ta.value = text; ta.style.position='fixed'; ta.style.opacity='0';
+  document.body.appendChild(ta); ta.select();
+  try{ document.execCommand('copy'); ok(); }catch(e){ alert('No se pudo copiar automáticamente.'); }
+  document.body.removeChild(ta);
+}
 function renderColaboradorNeto(calc){
   const el = document.getElementById('resumen-colaboradores');
   if(!el) return;
-  let html = '<table class="xls"><thead><tr><th>Colaborador</th><th>Sobrante / Faltante del día</th></tr></thead><tbody>';
+  let html = '<table class="xls centrada" style="min-width:0;"><thead><tr><th>Colaborador</th><th>Sobrante / Faltante del día</th></tr></thead><tbody>';
   calc.colaboradorNeto.forEach(p=>{
     html += `<tr><td class="label">${escapeHtml(p.nombre)}</td><td>${moneyColored(p.monto)}</td></tr>`;
   });
@@ -1841,7 +1885,7 @@ Object.assign(app, {
   setCombustible, dragStartPersonal, dragOverZone, dragLeaveZone, dropZone, asignarPersonal, quitarAsignado, toggleTipoAsignado,
   addTurno, removeTurno,
   addAdelanto, removeAdelanto, editAdelanto, renderAdelantos,
-  copiarResumen, descargarCSV, exportState, importState, nuevoDia, cancelarNuevoDia, confirmarNuevoDia,
+  copiarResumen, copiarColaboradores, copiarLitros, descargarCSV, exportState, importState, nuevoDia, cancelarNuevoDia, confirmarNuevoDia,
 });
 
 /* =====================================================================
