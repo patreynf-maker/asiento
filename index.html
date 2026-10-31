@@ -317,6 +317,7 @@ table.xls td.full{background:#fff8ea;}
         </div>
         <div class="small">Diferencia (HABER − DEBE)</div>
         <div class="diff-box ok" id="tot-diferencia">$0</div>
+        <div class="btnrow" style="margin-top:10px;"><button class="btn" onclick="app.copiarResumen()">📋 Copiar Resumen / Copiar al asiento</button></div>
       </div>
 
       <div class="card">
@@ -1607,9 +1608,9 @@ function copiarLitros(){
 }
 function copiarColaboradores(){
   const c = calcular();
-  // solo los importes, uno por renglón en el orden de la tabla, con coma decimal (se pegan como número en Excel es-AR)
-  const text = c.colaboradorNeto.map(p=> round2(p.monto).toFixed(2).replace('.',',')).join('\n');
-  const ok = ()=> alert('Copiado: ' + c.colaboradorNeto.length + ' importes, en el orden de la tabla.');
+  // solo los importes, en una sola fila (transversal) en el orden de la tabla, con coma decimal (se pegan como número en Excel es-AR)
+  const text = c.colaboradorNeto.map(p=> round2(p.monto).toFixed(2).replace('.',',')).join('\t');
+  const ok = ()=> alert('Copiado: ' + c.colaboradorNeto.length + ' importes en una fila, en el orden de la tabla.');
   if(navigator.clipboard && navigator.clipboard.writeText){
     navigator.clipboard.writeText(text).then(ok).catch(()=> fallbackCopiar(text, ok));
   } else fallbackCopiar(text, ok);
