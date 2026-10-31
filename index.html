@@ -955,7 +955,9 @@ async function importPersonalFile(file){
     }
     // descarta un posible encabezado tipo "nombre"/"apellido"/"personal"
     if(names.length && /^(nombre|apellido|personal|empleado|vendedor)/i.test(names[0])) names.shift();
-    names.forEach(n=>{ if(!state.personal.includes(n)) state.personal.push(n); });
+    // el Excel nuevo reemplaza la lista (mismos nombres y mismo orden que en el archivo, sin repetidos)
+    const vistos = new Set();
+    state.personal = names.filter(n=>{ const k = norm(n); if(vistos.has(k)) return false; vistos.add(k); return true; });
     save(); renderAll();
   }catch(e){ showUploadError('No se pudo leer el archivo: ' + e.message); }
 }
@@ -1103,9 +1105,11 @@ function calcular(){
     });
   });
   a.adelantos.forEach(ad=>{ if(ad.colaborador) addShare(ad.colaborador, -num(ad.monto)); });
-  const colaboradorNeto = PERSONAL_ORDEN.map(nombre=>({nombre, monto: round2(personaNeto[norm(nombre)] ? personaNeto[norm(nombre)].monto : 0)}));
+  // lista y orden de colaboradores = los del Excel de personal cargado (si no hay, el orden fijo por defecto)
+  const ordenColab = state.personal.length ? state.personal : PERSONAL_ORDEN;
+  const colaboradorNeto = ordenColab.map(nombre=>({nombre, monto: round2(personaNeto[norm(nombre)] ? personaNeto[norm(nombre)].monto : 0)}));
   Object.keys(personaNeto).forEach(k=>{
-    if(!PERSONAL_ORDEN.some(n=> norm(n)===k)) colaboradorNeto.push({nombre: personaNeto[k].nombre, monto: round2(personaNeto[k].monto)});
+    if(!ordenColab.some(n=> norm(n)===k)) colaboradorNeto.push({nombre: personaNeto[k].nombre, monto: round2(personaNeto[k].monto)});
   });
 
   // Tarjetas BOXES (turno1+turno2, manual) -> alimenta "Tarjetas de Crédito BOXES"
@@ -1580,7 +1584,7 @@ function renderAdelantos(){
   const arr = state.asiento.adelantos;
   const tbody = document.getElementById('tbody-adelantos');
   if(!arr.length){ tbody.innerHTML = '<tr><td colspan="5" class="small">Sin adelantos cargados.</td></tr>'; return; }
-  const nombresDisponibles = Array.from(new Set([...PERSONAL_ORDEN, ...state.personal]));
+  const nombresDisponibles = (state.personal.length ? state.personal : PERSONAL_ORDEN);
   tbody.innerHTML = arr.map((item,i)=>{
     const colabOptions = ['<option value="">—</option>'].concat(
       nombresDisponibles.map(n=> `<option value="${escapeHtml(n)}" ${item.colaborador===n?'selected':''}>${escapeHtml(n)}</option>`)
