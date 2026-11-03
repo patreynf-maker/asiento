@@ -998,10 +998,29 @@ function repartoFaltante(grupo, planilla, signoNegativo){
   const cuartos = asignados.filter(p=>p.tipo==='cuarto').length;
   const medios = asignados.filter(p=>p.tipo==='medio').length;
   const completos = Math.max(totalPersonas-cuartos-medios,0);
-  const pCuarto = valor/(totalPersonas*4);
-  const pMedio  = valor/(totalPersonas*2);
-  const pCompleto = completos>0 ? (valor-(pCuarto*cuartos+pMedio*medios))/completos : 0;
-  return {valor, totalPersonas: asignados.length, cuartos, medios, completos, pCuarto, pMedio, pCompleto};
+  // Reparto en centavos enteros: cada cuota se redondea a 2 decimales y los centavos que sobran o faltan
+  // se asignan de a 1 a los que cobran/pagan completo, así la suma de las cuotas es EXACTAMENTE el valor del turno
+  // (y los cuadros de resumen, de turnos y de colaboradores siempre dan el mismo total).
+  const vC = Math.round(valor*100);
+  const qC = Math.round(vC/(totalPersonas*4));
+  const mC = Math.round(vC/(totalPersonas*2));
+  let cC = 0, extra = 0;
+  if(completos>0){
+    const rem = vC - (qC*cuartos + mC*medios);
+    cC = Math.trunc(rem/completos);
+    extra = rem - cC*completos;   // centavos sueltos (puede ser negativo)
+  }
+  const paso = extra<0 ? -1 : 1;
+  let idxCompleto = 0;
+  const cuotas = asignados.map(p=>{
+    if(p.tipo==='cuarto') return qC/100;
+    if(p.tipo==='medio') return mC/100;
+    const mas = idxCompleto < Math.abs(extra) ? paso : 0;
+    idxCompleto++;
+    return (cC + mas)/100;
+  });
+  const pCuarto = qC/100, pMedio = mC/100, pCompleto = completos>0 ? cC/100 : 0;
+  return {valor, totalPersonas: asignados.length, cuartos, medios, completos, pCuarto, pMedio, pCompleto, cuotas};
 }
 function calcular(){
   const a = state.asiento;
@@ -1098,9 +1117,8 @@ function calcular(){
   }
   [faltantePlayaCalc, sobrantePlayaCalc, faltanteFullCalc, sobranteFullCalc].forEach(grupos=>{
     grupos.forEach(g=>{
-      (g.asignados||[]).forEach(p=>{
-        const cuota = p.tipo==='cuarto' ? g.pCuarto : (p.tipo==='medio' ? g.pMedio : g.pCompleto);
-        addShare(p.nombre, num(cuota));
+      (g.asignados||[]).forEach((p,pi)=>{
+        addShare(p.nombre, num(g.cuotas[pi]));
       });
     });
   });
