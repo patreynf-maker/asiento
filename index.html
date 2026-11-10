@@ -1268,7 +1268,7 @@ function buildHoja(c){
     dC(67+i, g? g.valor*-1 : 0, {label: g && g.valor!==0 ? labelDif(g,a.fullBase,i,'Faltante Full') : 'Faltante Full', tag:'dif'});
   }
   const ads = a.adelantos.filter(x=> num(x.monto)!==0);
-  for(let i=0;i<13;i++) dC(72+i, ads[i] ? num(ads[i].monto) : 0, {tag:'dif'});
+  for(let i=0;i<13;i++) dC(72+i, ads[i] ? num(ads[i].monto) : 0, {tag:'dif', label: (ads[i] && ads[i].colaborador) ? TPL_A[72+i] + ' - ' + titleCase(ads[i].colaborador) : TPL_A[72+i]});
   dM(97,'pedidosYaEfectivo');
 
   // ---- HABER ----
@@ -1537,7 +1537,23 @@ function renderResumenFaltantesSobrantes(calc){
     html += `<tr class="total"><td colspan="4">TOTAL ${titulo.toUpperCase()}</td><td>${moneyColored(total)}</td></tr></tbody></table>`;
     return html;
   }
-  const htmlResumen = (playa.length ? tabla('Playa','playa',playa) : '') + (full.length ? tabla('Full / Shop','full',full) : '');
+  // Adelantos del día, por lugar (se muestran debajo de la tabla de Playa o de Full según corresponda)
+  function tablaAdelantos(lugarFull){
+    const lista = a.adelantos.filter(x=> num(x.monto)!==0 && ((x.lugar==='full') === lugarFull));
+    if(!lista.length) return '';
+    let h = `<h3 class="${lugarFull?'full':'playa'}" style="font-size:13px;margin:14px 0 6px;text-align:center;">Adelantos ${lugarFull?'Full / Shop':'Playa'} · ${fechaCorta}</h3>`;
+    // el adelanto es una pérdida para el colaborador: siempre en negativo (y en rojo)
+    const neg = v=> -Math.abs(num(v));
+    const celdaConcepto = 'white-space:normal;word-break:break-word;overflow-wrap:anywhere;text-align:left;width:55%;line-height:1.3;';
+    const celdaChica = 'white-space:nowrap;width:1%;';
+    h += '<table class="xls centrada" style="table-layout:auto;"><thead><tr><th style="'+celdaChica+'">Colaborador</th><th>Concepto</th><th style="'+celdaChica+'">Monto</th></tr></thead><tbody>';
+    lista.forEach(x=>{
+      h += `<tr><td class="label" style="${celdaChica}">${x.colaborador ? escapeHtml(x.colaborador) : '<span class="small">Sin colaborador</span>'}</td><td class="label" style="${celdaConcepto}">${escapeHtml(x.concepto||'')}</td><td style="${celdaChica}">${moneyColored(neg(x.monto))}</td></tr>`;
+    });
+    h += `<tr class="total"><td colspan="2">TOTAL ADELANTOS ${lugarFull?'FULL / SHOP':'PLAYA'}</td><td style="${celdaChica}">${moneyColored(lista.reduce((t,x)=>t+neg(x.monto),0))}</td></tr></tbody></table>`;
+    return h;
+  }
+  const htmlResumen = (playa.length ? tabla('Playa','playa',playa) : '') + tablaAdelantos(false) + (full.length ? tabla('Full / Shop','full',full) : '') + tablaAdelantos(true);
   // litros vendidos por combustible (suma de todos los cortes de precio)
   let lt = '<table class="xls centrada"><thead><tr><th>Combustible</th><th>Litros</th></tr></thead><tbody>';
   COMBUSTIBLE_ORDEN.forEach(k=>{
