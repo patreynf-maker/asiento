@@ -1296,13 +1296,13 @@ function buildHoja(c){
   }
   H[86] = {label:TPL_C[86], hoja:'sobranteBoxesHaber', val:hojaVal('sobranteBoxesHaber'), tag:'sob'};
   // filas 87-90: "Sobrante Full" por turno (Mañana, Tarde, Noche, ST1; ST2 y ST3 se suman en ST1).
-  // Es solo informativo, en la columna Precio: el sobrante ya se resta en la línea FULL del turno, por eso no suma importe.
+  // Es solo informativo, en la columna Importe (junto a los sobrantes de Playa): el sobrante ya se resta en la línea FULL del turno, por eso no suma importe.
   for(let i=0;i<4;i++){
     const g = c.sobranteFullCalc[i];
     let v = g ? g.valor : 0, asign = g ? (g.asignados||[]) : [];
     if(i===3) for(let k=4;k<c.sobranteFullCalc.length;k++){ const gk = c.sobranteFullCalc[k]; v += gk.valor; if(!asign.length && gk.valor!==0) asign = gk.asignados||[]; }
     // igual que Sobrante Playa: nombres de los colaboradores y N° de planilla del turno, p. ej. "Faijoo, Prado (2751)"
-    H[87+i] = {label: v!==0 ? labelDif({asignados:asign}, a.fullBase, i, 'Sobrante Full') : 'Sobrante Full', infoPrecio: round2(v), val:0};
+    H[87+i] = {label: v!==0 ? labelDif({asignados:asign}, a.fullBase, i, 'Sobrante Full') : 'Sobrante Full', infoImporte: round2(v), val:0};
   }
   for(let i=0;i<4;i++){ let v = c.fullPorTurno[i] ? c.fullPorTurno[i].monto : 0; if(i===3) for(let k=4;k<c.fullPorTurno.length;k++) v += c.fullPorTurno[k].monto; H[91+i] = {label:TPL_C[91+i], val: round2(v)}; }
   canj(95,'lunchera');
@@ -1316,7 +1316,7 @@ function buildHoja(c){
   // RESULTANTE SOB/FALT. (G68:G71): G69 = faltantes Playa/Full/Boxes + adelantos (B61:B96), G70 = sobrantes Playa/Boxes (F81:F86) + sobrantes Full (filas 87-90), G71 = G69-G70
   let g69=0; for(let r=61;r<=96;r++) if(D[r]) g69+=D[r].val||0;
   let g70=0; for(let r=81;r<=86;r++) if(H[r]) g70+=H[r].val||0;
-  for(let r=87;r<=90;r++) if(H[r] && H[r].infoPrecio) g70+=H[r].infoPrecio;   // sobrantes Full (solo informativos en la hoja) también cuentan en el resultante
+  for(let r=87;r<=90;r++) if(H[r] && H[r].infoImporte) g70+=H[r].infoImporte;   // sobrantes Full (solo informativos en la hoja) también cuentan en el resultante
   const resultante = {g69:round2(g69), g70:round2(g70), g71:round2(g69-g70)};
   const tarjetas = {
     playa: tarjP, full: tarjF, totalPlaya: tarjPlayaT, pedidosYa: num(a.pedidosYaTarjetaFull), totalFull: tarjFullT,
@@ -1741,12 +1741,12 @@ function renderResumen(){
       } else if(hb.canjeKey){
         ml = manualAmountCell(state.asiento.canjes[hb.canjeKey], `app.setCanje('${hb.canjeKey}', this.value)`);
         pr = fmtHoja(hb.precio);
-      } else if(hb.infoPrecio!==undefined){
-        pr = fmtHojaColor(hb.infoPrecio);
+      } else if(hb.infoImporte!==undefined){
+        // sobrante Full: va en la columna Importe (como el sobrante de Playa) pero NO entra en los totales
       } else if(hb.ml!==undefined){
         ml = fmtHoja(hb.ml); pr = fmtHoja(hb.precio);
       }
-      hv = hb.hoja ? manualAmountCell(state.asiento.hoja[hb.hoja], `app.setHoja('${hb.hoja}', this.value)`) : fmtHojaColor(hb.val);
+      hv = hb.hoja ? manualAmountCell(state.asiento.hoja[hb.hoja], `app.setHoja('${hb.hoja}', this.value)`) : fmtHojaColor(hb.infoImporte!==undefined ? hb.infoImporte : hb.val);
     }
     const gv = G[row.r]===undefined ? '' : (typeof G[row.r]==='string' ? `<b>${G[row.r]}</b>` : fmtHojaColor(G[row.r]));
     const hdr = d && d.header ? ' style="font-weight:800;"' : '';
@@ -1827,9 +1827,8 @@ function hojaFilas(c){
     if(d){ f[0]=d.label; f[1]= d.header ? '' : fmtCopia(d.val); }
     if(hb){
       f[2]=hb.label;
-      if(hb.infoPrecio!==undefined){ f[4]=fmtCopia(hb.infoPrecio); }
-      else if(hb.ml!==undefined){ f[3]=fmtCopia(hb.ml); f[4]=fmtCopia(hb.precio); }
-      f[5]=fmtCopia(hb.val);
+      if(hb.ml!==undefined){ f[3]=fmtCopia(hb.ml); f[4]=fmtCopia(hb.precio); }
+      f[5]=fmtCopia(hb.infoImporte!==undefined ? hb.infoImporte : hb.val);
     }
     if(G[r]!==undefined) f[6] = typeof G[r]==='string' ? G[r] : fmtCopia(G[r]);
     filas.push(f);
