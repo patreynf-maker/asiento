@@ -525,10 +525,6 @@ const CANJES_PUNTOS = [
   {key:'reposera1', label:'reposera-8000pts', precio:0.01},
   {key:'reposera2', label:'reposera-6000pts+5500', precio:5500},
   {key:'reposera3', label:'reposera-100pts+7500', precio:7500},
-  {key:'mate1', label:'mate-3500pts', precio:3500},
-  {key:'mate2', label:'mate-1500pts+900', precio:2500},
-  {key:'mate3', label:'mate-100pts+1500', precio:0.01},
-  {key:'reposeraPosSc', label:'reposera x pos sc', precio:0.01},
   {key:'lunchera', label:'lunchera x $1500', precio:1500},
 ];
 // Renglones manuales del lado DEBE que en la hoja original no tienen fórmula propia (BOXES, rutas contado, etc.)
@@ -1299,7 +1295,13 @@ function buildHoja(c){
     H[81+i] = {label: g && g.valor!==0 ? labelDif(g,a.playaBase,i,'Sobrante Playa') : TPL_C[81+i], val: g? round2(g.valor):0, tag:'sob'};
   }
   H[86] = {label:TPL_C[86], hoja:'sobranteBoxesHaber', val:hojaVal('sobranteBoxesHaber'), tag:'sob'};
-  ['mate1','mate2','mate3','reposeraPosSc'].forEach((k,i)=> canj(87+i,k));
+  // filas 87-90: "Sobrante Full" por turno (Mañana, Tarde, Noche, ST1; ST2 y ST3 se suman en ST1).
+  // Es solo informativo, en la columna Precio: el sobrante ya se resta en la línea FULL del turno, por eso no suma importe.
+  for(let i=0;i<4;i++){
+    let v = c.sobranteFullCalc[i] ? c.sobranteFullCalc[i].valor : 0;
+    if(i===3) for(let k=4;k<c.sobranteFullCalc.length;k++) v += c.sobranteFullCalc[k].valor;
+    H[87+i] = {label:'Sobrante Full', infoPrecio: round2(v), val:0};
+  }
   for(let i=0;i<4;i++){ let v = c.fullPorTurno[i] ? c.fullPorTurno[i].monto : 0; if(i===3) for(let k=4;k<c.fullPorTurno.length;k++) v += c.fullPorTurno[k].monto; H[91+i] = {label:TPL_C[91+i], val: round2(v)}; }
   canj(95,'lunchera');
   H[96] = {label:TPL_C[96], hoja:'ingresosCheques', val:hojaVal('ingresosCheques')};
@@ -1309,9 +1311,10 @@ function buildHoja(c){
   for(let r=4;r<=97;r++) rows.push({r, d:D[r]||null, h:H[r]||null});
   const sum = o=> Object.values(o).reduce((t,x)=> t+(x.val||0),0);
   const totalDebe = round2(sum(D)), totalHaber = round2(sum(H));
-  // RESULTANTE SOB/FALT. (G68:G71 de la plantilla): G69 = SUM(B61:B96), G70 = SUM(F81:F86), G71 = G69-G70
+  // RESULTANTE SOB/FALT. (G68:G71): G69 = faltantes Playa/Full/Boxes + adelantos (B61:B96), G70 = sobrantes Playa/Boxes (F81:F86) + sobrantes Full (filas 87-90), G71 = G69-G70
   let g69=0; for(let r=61;r<=96;r++) if(D[r]) g69+=D[r].val||0;
   let g70=0; for(let r=81;r<=86;r++) if(H[r]) g70+=H[r].val||0;
+  for(let r=87;r<=90;r++) if(H[r] && H[r].infoPrecio) g70+=H[r].infoPrecio;   // sobrantes Full (solo informativos en la hoja) también cuentan en el resultante
   const resultante = {g69:round2(g69), g70:round2(g70), g71:round2(g69-g70)};
   const tarjetas = {
     playa: tarjP, full: tarjF, totalPlaya: tarjPlayaT, pedidosYa: num(a.pedidosYaTarjetaFull), totalFull: tarjFullT,
@@ -1736,6 +1739,8 @@ function renderResumen(){
       } else if(hb.canjeKey){
         ml = manualAmountCell(state.asiento.canjes[hb.canjeKey], `app.setCanje('${hb.canjeKey}', this.value)`);
         pr = fmtHoja(hb.precio);
+      } else if(hb.infoPrecio!==undefined){
+        pr = fmtHojaColor(hb.infoPrecio);
       } else if(hb.ml!==undefined){
         ml = fmtHoja(hb.ml); pr = fmtHoja(hb.precio);
       }
@@ -1820,7 +1825,8 @@ function hojaFilas(c){
     if(d){ f[0]=d.label; f[1]= d.header ? '' : fmtCopia(d.val); }
     if(hb){
       f[2]=hb.label;
-      if(hb.ml!==undefined){ f[3]=fmtCopia(hb.ml); f[4]=fmtCopia(hb.precio); }
+      if(hb.infoPrecio!==undefined){ f[4]=fmtCopia(hb.infoPrecio); }
+      else if(hb.ml!==undefined){ f[3]=fmtCopia(hb.ml); f[4]=fmtCopia(hb.precio); }
       f[5]=fmtCopia(hb.val);
     }
     if(G[r]!==undefined) f[6] = typeof G[r]==='string' ? G[r] : fmtCopia(G[r]);
