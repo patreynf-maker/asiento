@@ -1298,9 +1298,11 @@ function buildHoja(c){
   // filas 87-90: "Sobrante Full" por turno (Mañana, Tarde, Noche, ST1; ST2 y ST3 se suman en ST1).
   // Es solo informativo, en la columna Precio: el sobrante ya se resta en la línea FULL del turno, por eso no suma importe.
   for(let i=0;i<4;i++){
-    let v = c.sobranteFullCalc[i] ? c.sobranteFullCalc[i].valor : 0;
-    if(i===3) for(let k=4;k<c.sobranteFullCalc.length;k++) v += c.sobranteFullCalc[k].valor;
-    H[87+i] = {label:'Sobrante Full', infoPrecio: round2(v), val:0};
+    const g = c.sobranteFullCalc[i];
+    let v = g ? g.valor : 0, asign = g ? (g.asignados||[]) : [];
+    if(i===3) for(let k=4;k<c.sobranteFullCalc.length;k++){ const gk = c.sobranteFullCalc[k]; v += gk.valor; if(!asign.length && gk.valor!==0) asign = gk.asignados||[]; }
+    // igual que Sobrante Playa: nombres de los colaboradores y N° de planilla del turno, p. ej. "Faijoo, Prado (2751)"
+    H[87+i] = {label: v!==0 ? labelDif({asignados:asign}, a.fullBase, i, 'Sobrante Full') : 'Sobrante Full', infoPrecio: round2(v), val:0};
   }
   for(let i=0;i<4;i++){ let v = c.fullPorTurno[i] ? c.fullPorTurno[i].monto : 0; if(i===3) for(let k=4;k<c.fullPorTurno.length;k++) v += c.fullPorTurno[k].monto; H[91+i] = {label:TPL_C[91+i], val: round2(v)}; }
   canj(95,'lunchera');
